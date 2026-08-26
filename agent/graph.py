@@ -182,10 +182,17 @@ def _should_continue(state: AgentState) -> str:
     return END
 
 
+# Explicit rather than relying on ToolNode's default error handler: any
+# exception during tool invocation -- including malformed/invalid arguments
+# the model generates, which surface as a schema ValidationError -- becomes
+# an error ToolMessage fed back to the model instead of crashing the run.
+TOOL_NODE = ToolNode(TOOLS, handle_tool_errors=True)
+
+
 def build_graph():
     graph = StateGraph(AgentState)
     graph.add_node("agent", _agent_node)
-    graph.add_node("tools", ToolNode(TOOLS))
+    graph.add_node("tools", TOOL_NODE)
     graph.set_entry_point("agent")
     graph.add_conditional_edges("agent", _should_continue, {"tools": "tools", END: END})
     graph.add_edge("tools", "agent")
