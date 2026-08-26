@@ -50,6 +50,10 @@ SERVICES = [
 
 MONTHS = ["March 2026", "April 2026", "May 2026", "June 2026", "July 2026", "August 2026"]
 
+ID_TYPES = ["Passport", "Driver's License", "National ID Card"]
+STREET_NAMES = ["Ledger Avenue", "Maple Street", "Harbor Road", "Fifth Avenue", "Elm Court"]
+CITIES = ["Springfield", "Rivertown", "Fairview", "Brookhaven", "Lakeside"]
+
 
 def draw_lines(c: canvas.Canvas, title: str, lines: list[str]) -> None:
     width, height = letter
@@ -91,7 +95,7 @@ def make_bank_statement(path: Path, client_id: str, name: str, omit_closing_bala
     if not omit_closing_balance:
         lines.append(f"Closing Balance: ${closing:,.2f}")
 
-    c = canvas.Canvas(str(path), pagesize=letter)
+    c = canvas.Canvas(str(path), pagesize=letter, invariant=1)
     draw_lines(c, "Bank Statement", lines)
 
 
@@ -109,7 +113,7 @@ def make_financial_summary(path: Path, client_id: str, name: str, omit_liabiliti
         lines.append(f"Total Liabilities: ${liabilities:,.2f}")
     lines.append(f"Estimated Net Worth: ${net_worth:,.2f}")
 
-    c = canvas.Canvas(str(path), pagesize=letter)
+    c = canvas.Canvas(str(path), pagesize=letter, invariant=1)
     draw_lines(c, "Financial Summary", lines)
 
 
@@ -121,7 +125,7 @@ def make_transaction_report(path: Path, client_id: str, name: str) -> None:
         sign = "-" if amount < 0 else "+"
         lines.append(f"  2026-07-{day:02d}   {sign}${abs(amount):,.2f}")
 
-    c = canvas.Canvas(str(path), pagesize=letter)
+    c = canvas.Canvas(str(path), pagesize=letter, invariant=1)
     draw_lines(c, "Transaction Report", lines)
 
 
@@ -134,7 +138,7 @@ def make_application_form(path: Path, client_id: str, name: str, omit_signature:
     ]
     lines.append("Signature: __signed__" if not omit_signature else "Signature: (not provided)")
 
-    c = canvas.Canvas(str(path), pagesize=letter)
+    c = canvas.Canvas(str(path), pagesize=letter, invariant=1)
     draw_lines(c, "Client Application Form", lines)
 
 
@@ -148,8 +152,44 @@ def make_account_summary(path: Path, client_id: str, name: str, omit_advisor: bo
         lines.append(f"Assigned Advisor: {random.choice(['Morgan Ellis', 'Priya Nandakumar', 'Sofia Reyes'])}")
     lines.append(f"Current Balance: ${round(random.uniform(1000, 60000), 2):,.2f}")
 
-    c = canvas.Canvas(str(path), pagesize=letter)
+    c = canvas.Canvas(str(path), pagesize=letter, invariant=1)
     draw_lines(c, "Account Summary", lines)
+
+
+def make_government_id(path: Path, client_id: str, name: str, omit_id_number: bool) -> None:
+    id_number = f"ID-{random.randint(1000000, 9999999)}"
+    issue_year = random.randint(2020, 2025)
+
+    lines = [
+        f"Client ID: {client_id}",
+        f"Full Name: {name}",
+        f"ID Type: {random.choice(ID_TYPES)}",
+    ]
+    if not omit_id_number:
+        lines.append(f"ID Number: {id_number}")
+    lines.append(f"Issue Date: {issue_year}-01-15")
+    lines.append(f"Expiration Date: {issue_year + 5}-01-15")
+
+    c = canvas.Canvas(str(path), pagesize=letter, invariant=1)
+    draw_lines(c, "Government-Issued ID", lines)
+
+
+def make_proof_of_address(path: Path, client_id: str, name: str, omit_address: bool) -> None:
+    street_number = random.randint(100, 9999)
+    address = f"{street_number} {random.choice(STREET_NAMES)}, {random.choice(CITIES)}, ST {random.randint(10000, 99999)}"
+    month = random.choice(MONTHS)
+
+    lines = [
+        f"Client ID: {client_id}",
+        f"Full Name: {name}",
+        f"Proof Type: {random.choice(['Utility Bill', 'Lease Agreement', 'Bank Statement'])}",
+    ]
+    if not omit_address:
+        lines.append(f"Address: {address}")
+    lines.append(f"Statement Date: {month}")
+
+    c = canvas.Canvas(str(path), pagesize=letter, invariant=1)
+    draw_lines(c, "Proof of Address", lines)
 
 
 def main() -> None:
@@ -164,7 +204,7 @@ def main() -> None:
 
     # 5 bank statements -- first one is the spec's own worked example (C1002, July 2026).
     special_path = OUTPUT_DIR / "C1002_bank_statement_july2026.pdf"
-    c = canvas.Canvas(str(special_path), pagesize=letter)
+    c = canvas.Canvas(str(special_path), pagesize=letter, invariant=1)
     draw_lines(
         c,
         "Bank Statement",
@@ -259,6 +299,61 @@ def main() -> None:
                 "client_id": cid,
                 "document_type": "account_summary",
                 "is_intentionally_incomplete": "Yes" if omit else "No",
+            }
+        )
+
+    # Government ID + Proof of Address -- closes the document-type gap against
+    # required_documents.md. C1002 deliberately gets an application form and a
+    # proof of address, but NO government ID, reproducing the spec's own
+    # required-documents example (financial statement + proof of address present,
+    # government ID missing).
+    make_application_form(
+        OUTPUT_DIR / "C1002_application_form.pdf", "C1002", "Noah Rhodes", omit_signature=False
+    )
+    manifest_rows.append(
+        {
+            "filename": "C1002_application_form.pdf",
+            "client_id": "C1002",
+            "document_type": "client_application_form",
+            "is_intentionally_incomplete": "No",
+        }
+    )
+    make_proof_of_address(
+        OUTPUT_DIR / "C1002_proof_of_address.pdf", "C1002", "Noah Rhodes", omit_address=False
+    )
+    manifest_rows.append(
+        {
+            "filename": "C1002_proof_of_address.pdf",
+            "client_id": "C1002",
+            "document_type": "proof_of_address",
+            "is_intentionally_incomplete": "No",
+        }
+    )
+
+    government_id_clients = [("C1001", "Allison Hill"), ("C1003", "Angie Henderson")]
+    for i, (cid, name) in enumerate(government_id_clients):
+        omit = i == 0
+        fname = f"{cid}_government_id.pdf"
+        make_government_id(OUTPUT_DIR / fname, cid, name, omit_id_number=omit)
+        manifest_rows.append(
+            {
+                "filename": fname,
+                "client_id": cid,
+                "document_type": "government_id",
+                "is_intentionally_incomplete": "Yes" if omit else "No",
+            }
+        )
+
+    proof_of_address_clients = [("C1001", "Allison Hill"), ("C1006", "Connie Lawrence")]
+    for cid, name in proof_of_address_clients:
+        fname = f"{cid}_proof_of_address.pdf"
+        make_proof_of_address(OUTPUT_DIR / fname, cid, name, omit_address=False)
+        manifest_rows.append(
+            {
+                "filename": fname,
+                "client_id": cid,
+                "document_type": "proof_of_address",
+                "is_intentionally_incomplete": "No",
             }
         )
 

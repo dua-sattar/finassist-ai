@@ -14,4 +14,10 @@ C1017_application_form.pdf,C1017,client_application_form,Yes
 C1019_application_form.pdf,C1019,client_application_form,No
 C1025_account_summary.pdf,C1025,account_summary,Yes
 C1034_account_summary.pdf,C1034,account_summary,No
+C1002_application_form.pdf,C1002,client_application_form,No
+C1002_proof_of_address.pdf,C1002,proof_of_address,No
+C1001_government_id.pdf,C1001,government_id,Yes
+C1003_government_id.pdf,C1003,government_id,No
+C1001_proof_of_address.pdf,C1001,proof_of_address,No
+C1006_proof_of_address.pdf,C1006,proof_of_address,No
 invalid_corrupted.pdf,,invalid,N/A
