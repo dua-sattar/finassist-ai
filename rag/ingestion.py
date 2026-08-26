@@ -7,9 +7,9 @@ from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharac
 
 KB_DIR = Path(__file__).parent.parent / "knowledge_base"
 
-HEADERS_TO_SPLIT_ON = [("#", "h1"), ("##", "h2")]
-CHUNK_SIZE = 500
-CHUNK_OVERLAP = 50
+HEADERS_TO_SPLIT_ON = [("#", "h1")]
+CHUNK_SIZE = 700
+CHUNK_OVERLAP = 100
 
 
 @dataclass
@@ -22,9 +22,12 @@ class Chunk:
 def load_and_chunk() -> list[Chunk]:
     """Load every knowledge_base/*.md file and split it into overlapping chunks.
 
-    Splitting is header-aware first (so a chunk doesn't straddle unrelated
-    policy sections), then size-capped, so retrieval returns focused,
-    citable passages rather than whole documents.
+    Only splits on the H1 title (each KB file has exactly one), not H2
+    subsections: splitting per-## fragmented list-like docs (e.g. services.md's
+    five services) into many small, narrow chunks, which hurt recall for
+    broad queries like "what services do you offer" -- no single per-service
+    chunk scored high enough to make the top-k. The larger 700-char /
+    100-overlap size-based split keeps related list items together instead.
     """
     header_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=HEADERS_TO_SPLIT_ON)
     size_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)

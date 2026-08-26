@@ -99,7 +99,7 @@ def summarize_document(document_type: str, extracted: dict) -> str:
         from groq import Groq
 
         client = Groq(api_key=api_key)
-        model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
         response = client.chat.completions.create(
             model=model,
             messages=[
