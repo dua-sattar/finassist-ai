@@ -193,6 +193,28 @@ def approve_followup(followup_id: int) -> Followup | None:
         return followup
 
 
+def simulate_send(followup_id: int) -> Followup | None:
+    """Mark a followup as sent -- but this NEVER sends a real email; it only
+    flips a status flag for the demo. Only succeeds if the followup is
+    already Approved by a human; returns None (and changes nothing) if it's
+    not found or still Draft, so a followup can never be "sent" without
+    going through approve_followup first."""
+    with session_scope() as session:
+        followup = session.get(Followup, followup_id)
+        if followup is None:
+            logger.warning("simulate_send: followup %s not found", followup_id)
+            return None
+        if followup.status != "Approved":
+            logger.warning(
+                "simulate_send: followup %s is %s, not Approved -- refusing to send",
+                followup_id,
+                followup.status,
+            )
+            return None
+        followup.status = "Sent-simulated"
+        return followup
+
+
 # --- Conversations -------------------------------------------------------
 
 
