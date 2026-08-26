@@ -3,8 +3,8 @@
 Classification and field extraction are deterministic (regex over the
 `Label: value` line format every synthetic document uses) rather than
 LLM-based -- cheap, offline-testable, and realistic for a fixed document
-template. Only the free-text summary calls the OpenAI API, with a graceful
-templated fallback if no API key is configured or the call fails.
+template. Only the free-text summary calls the Groq API (free tier), with a
+graceful templated fallback if no API key is configured or the call fails.
 """
 
 import logging
@@ -84,22 +84,22 @@ def extract_fields(text: str, document_type: str) -> dict:
 
 def summarize_document(document_type: str, extracted: dict) -> str:
     """One-sentence-or-two AI summary of the extracted document, with a
-    templated fallback if OpenAI is unavailable or the call fails."""
+    templated fallback if Groq is unavailable or the call fails."""
     client_id = extracted.get("client_id", "unknown client")
     label = document_type.replace("_", " ")
     field_str = ", ".join(f"{k}={v}" for k, v in extracted.items() if v is not None and k != "client_id")
     fallback = f"{label.title()} for {client_id}. Extracted fields: {field_str or 'none'}."
 
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        logger.info("No OPENAI_API_KEY configured; using templated summary for %s", client_id)
+        logger.info("No GROQ_API_KEY configured; using templated summary for %s", client_id)
         return fallback
 
     try:
-        from openai import OpenAI
+        from groq import Groq
 
-        client = OpenAI(api_key=api_key)
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        client = Groq(api_key=api_key)
+        model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
         response = client.chat.completions.create(
             model=model,
             messages=[
