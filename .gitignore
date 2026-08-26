@@ -1,0 +1,29 @@
+# Secrets
+.env
+.streamlit/secrets.toml
+secrets/
+*.key
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Databases
+*.db
+*.sqlite3
+
+# Vector store / generated indexes
+rag/vector_store/
+chroma_db/
+
+# OS / editor
+.DS_Store
+.vscode/
+*.log
+
+# Claude Code local session state
+.claude/

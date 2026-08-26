@@ -1,0 +1,32 @@
+# --- Frontend ---
+streamlit>=1.36
+
+# --- Backend / API ---
+fastapi>=0.111
+uvicorn>=0.30
+python-multipart>=0.0.9
+
+# --- AI / Agent ---
+openai>=1.35
+langgraph>=0.1.5
+langchain>=0.2.5
+langchain-openai>=0.1.8
+langchain-community>=0.2.5
+
+# --- RAG / Vector Store ---
+chromadb>=0.5.0
+
+# --- Document Processing ---
+pymupdf>=1.24
+pdfplumber>=0.11
+
+# --- Data / Validation ---
+pydantic>=2.7
+pandas>=2.2
+sqlalchemy>=2.0
+
+# --- Synthetic Data Generation ---
+faker>=25.0
+
+# --- Environment / Config ---
+python-dotenv>=1.0

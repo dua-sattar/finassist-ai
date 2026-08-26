@@ -1,0 +1,41 @@
+lead_id,name,email,company,service_interest,engagement_level,information_complete,source,status,created_date,last_contact
+L1001,Paula Moreno,paula.moreno@example.com,George Group,Investment Advisory Consultation,Medium,Yes,Website,New,2026-08-04,2026-08-22
+L1002,Timothy Koch,timothy.koch@example.org,Allen-Allen,Business Financial Consulting,Low,No,Event,Contacted,2026-03-16,2026-08-26
+L1003,Angela Dennis,angela.dennis@example.com,Spence PLC,Tax Planning Consultation,Medium,Yes,Event,Unqualified,2026-03-03,2026-08-24
+L1004,Betty Alvarez,betty.alvarez@example.com,"Martin, Rose and Obrien",Estate Planning Guidance,Low,Yes,Referral,Contacted,2026-06-02,2026-08-26
+L1005,Tanya Campos,tanya.campos@example.com,"Harris, Collins and Carney",Tax Planning Consultation,High,Yes,Event,Qualified,2026-04-14,2026-08-24
+L1006,Jessica Holmes,jessica.holmes@example.net,Wright Inc,Tax Planning Consultation,Low,Yes,Event,New,2026-07-12,2026-08-23
+L1007,Kevin Hall,kevin.hall@example.com,Smith Ltd,Retirement Planning,Low,Yes,Event,Qualified,2026-07-18,2026-08-24
+L1008,Crystal Whitehead,crystal.whitehead@example.net,Jones-Young,Tax Planning Consultation,High,No,Cold Outreach,Qualified,2026-03-20,2026-08-25
+L1009,Cindy Anderson,cindy.anderson@example.net,"Johnston, Sanchez and Kennedy",Estate Planning Guidance,Medium,Yes,Referral,Qualified,2026-08-08,2026-08-26
+L1010,Brandon Hopkins,brandon.hopkins@example.com,Henderson-Owens,Estate Planning Guidance,Low,No,Referral,New,2026-07-19,2026-08-24
+L1011,Megan Joyce,megan.joyce@example.net,Brown Ltd,Retirement Planning,Medium,Yes,Cold Outreach,Contacted,2026-08-02,2026-08-25
+L1012,Scott Wright,scott.wright@example.org,Herrera and Sons,Retirement Planning,Medium,Yes,Website,New,2026-08-11,2026-08-24
+L1013,Donald Wright,donald.wright@example.org,Ramos PLC,Business Financial Consulting,Low,Yes,Website,Contacted,2026-05-23,2026-08-22
+L1014,Matthew Fernandez,matthew.fernandez@example.com,Novak and Sons,Investment Advisory Consultation,Low,No,Cold Outreach,Contacted,2026-07-07,2026-08-23
+L1015,John Lewis,john.lewis@example.net,Barrera-Martin,Retirement Planning,Medium,Yes,Cold Outreach,Contacted,2026-06-14,2026-08-25
+L1016,James House,james.house@example.org,Mitchell-Horton,Tax Planning Consultation,High,Yes,Referral,Contacted,2026-07-01,2026-08-23
+L1017,Rachel Stanley,rachel.stanley@example.org,Moore-Phillips,Retirement Planning,Medium,No,Cold Outreach,Qualified,2026-05-11,2026-08-24
+L1018,Lauren Daniels,lauren.daniels@example.org,"Edwards, Williams and Woods",Investment Advisory Consultation,Low,No,Referral,New,2026-08-14,2026-08-26
+L1019,Kim Brown,kim.brown@example.org,"Miller, Lopez and Larson",Tax Planning Consultation,Medium,Yes,Cold Outreach,Contacted,2026-03-22,2026-08-23
+L1020,Cynthia Wilson,cynthia.wilson@example.net,"Sanchez, Wheeler and Harvey",Estate Planning Guidance,High,Yes,Event,Unqualified,2026-06-17,2026-08-26
+L1021,Kevin Mills,kevin.mills@example.net,Harris-Moran,Tax Planning Consultation,Low,Yes,Event,Qualified,2026-08-04,2026-08-24
+L1022,James Powers,james.powers@example.org,Bryant-Hickman,Estate Planning Guidance,Low,No,Website,Contacted,2026-03-04,2026-08-23
+L1023,Alexandra Howell,alexandra.howell@example.net,"Ferrell, Jones and Lewis",Investment Advisory Consultation,Low,No,Cold Outreach,New,2026-05-06,2026-08-23
+L1024,Timothy Ibarra,timothy.ibarra@example.com,Wood and Sons,Estate Planning Guidance,Low,No,Cold Outreach,Unqualified,2026-06-05,2026-08-24
+L1025,Joshua Turner,joshua.turner@example.net,"Rice, Contreras and Spencer",Estate Planning Guidance,Low,Yes,Referral,Qualified,2026-04-30,2026-08-25
+L1026,Ashley Humphrey,ashley.humphrey@example.org,Wilson-Rodriguez,Retirement Planning,High,No,Website,Contacted,2026-04-12,2026-08-22
+L1027,Denise Jacobs,denise.jacobs@example.com,"Cooper, Watts and Farrell",Investment Advisory Consultation,Medium,Yes,Cold Outreach,Unqualified,2026-07-15,2026-08-26
+L1028,Danielle Odonnell,danielle.odonnell@example.com,Davis Group,Estate Planning Guidance,Medium,No,Website,Contacted,2026-03-13,2026-08-22
+L1029,Amanda Cook,amanda.cook@example.com,Walsh LLC,Estate Planning Guidance,High,Yes,Cold Outreach,New,2026-03-07,2026-08-26
+L1030,Jeremy Thornton,jeremy.thornton@example.com,"Smith, Jones and Ware",Estate Planning Guidance,High,No,Event,Unqualified,2026-04-01,2026-08-25
+L1031,Kimberly Davenport,kimberly.davenport@example.org,"Tran, Jordan and Williams",Business Financial Consulting,Medium,Yes,Cold Outreach,Unqualified,2026-03-18,2026-08-22
+L1032,Timothy Stanton,timothy.stanton@example.net,Nolan and Sons,Tax Planning Consultation,Low,No,Website,Qualified,2026-06-16,2026-08-25
+L1033,Mary Gomez,mary.gomez@example.net,"Henson, Russell and Oliver",Tax Planning Consultation,High,No,Event,Qualified,2026-05-01,2026-08-26
+L1034,Timothy Hancock,timothy.hancock@example.com,Keith Inc,Investment Advisory Consultation,High,No,Website,Contacted,2026-04-05,2026-08-26
+L1035,Tim Patton,tim.patton@example.org,Pham-Shields,Tax Planning Consultation,Low,No,Cold Outreach,New,2026-08-05,2026-08-23
+L1036,Debra Cobb,debra.cobb@example.org,Reyes Inc,Business Financial Consulting,Low,Yes,Cold Outreach,Unqualified,2026-06-30,2026-08-23
+L1037,Courtney Velasquez,courtney.velasquez@example.org,Bailey-Hoover,Estate Planning Guidance,Medium,Yes,Cold Outreach,Contacted,2026-08-20,2026-08-24
+L1038,Courtney Keller,courtney.keller@example.org,Murphy-Lin,Retirement Planning,Medium,No,Cold Outreach,Contacted,2026-06-13,2026-08-23
+L1039,Diana May,diana.may@example.net,Frazier-Anthony,Business Financial Consulting,High,No,Referral,New,2026-04-24,2026-08-25
+L1040,Alexander Wiley,alexander.wiley@example.com,White-Estes,Estate Planning Guidance,High,Yes,Event,Unqualified,2026-03-10,2026-08-23

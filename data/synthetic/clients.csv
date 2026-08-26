@@ -1,0 +1,41 @@
+client_id,name,email,service,account_status,onboarding_status,assigned_advisor,last_contact,created_date
+C1001,Allison Hill,allison.hill@example.com,Investment Advisory Consultation,Active,Complete,Priya Nandakumar,2026-08-23,2025-09-03
+C1002,Noah Rhodes,noah.rhodes@example.com,Retirement Planning,Pending,In Review,Morgan Ellis,2026-08-05,2026-06-05
+C1003,Angie Henderson,angie.henderson@example.net,Business Financial Consulting,Pending,In Review,Aisha Bello,2026-08-19,2026-04-07
+C1004,Daniel Wagner,daniel.wagner@example.com,Investment Advisory Consultation,Active,In Review,Sofia Reyes,2026-08-12,2026-04-06
+C1005,Cristian Santos,cristian.santos@example.org,Retirement Planning,Pending,Documents Pending,Morgan Ellis,2026-08-16,2025-12-23
+C1006,Connie Lawrence,connie.lawrence@example.com,Estate Planning Guidance,Active,Documents Pending,Daniel Kowalski,2026-08-23,2026-01-14
+C1007,Abigail Shaffer,abigail.shaffer@example.net,Business Financial Consulting,Pending,Documents Pending,Jordan Fitzgerald,2026-07-28,2026-05-25
+C1008,Gina Moore,gina.moore@example.com,Tax Planning Consultation,Closed,In Review,Morgan Ellis,2026-08-20,2025-10-05
+C1009,Gabrielle Davis,gabrielle.davis@example.org,Tax Planning Consultation,Active,Complete,Priya Nandakumar,2026-07-30,2026-03-30
+C1010,Ryan Munoz,ryan.munoz@example.net,Retirement Planning,Active,Complete,Daniel Kowalski,2026-08-15,2026-01-19
+C1011,Monica Herrera,monica.herrera@example.org,Tax Planning Consultation,Pending,In Review,Sofia Reyes,2026-08-21,2025-09-05
+C1012,Jamie Arnold,jamie.arnold@example.com,Investment Advisory Consultation,Active,Complete,Morgan Ellis,2026-08-09,2025-08-09
+C1013,Lisa Hensley,lisa.hensley@example.net,Tax Planning Consultation,Pending,Documents Pending,Priya Nandakumar,2026-08-14,2026-02-16
+C1014,Michele Williams,michele.williams@example.com,Investment Advisory Consultation,Active,Documents Pending,Sofia Reyes,2026-08-11,2025-08-26
+C1015,Dylan Miller,dylan.miller@example.org,Tax Planning Consultation,Active,Documents Pending,Priya Nandakumar,2026-08-09,2025-10-13
+C1016,Brian Ramirez,brian.ramirez@example.com,Investment Advisory Consultation,Pending,Documents Pending,Sofia Reyes,2026-08-10,2026-05-18
+C1017,Holly Wood,holly.wood@example.org,Estate Planning Guidance,Active,In Review,Daniel Kowalski,2026-08-01,2026-05-07
+C1018,Derek Zuniga,derek.zuniga@example.com,Business Financial Consulting,Pending,Documents Pending,Jordan Fitzgerald,2026-08-10,2025-11-30
+C1019,Lisa Jackson,lisa.jackson@example.com,Estate Planning Guidance,Active,Complete,Morgan Ellis,2026-08-16,2025-09-02
+C1020,Carla Gray,carla.gray@example.com,Business Financial Consulting,Active,In Review,Morgan Ellis,2026-07-29,2025-07-23
+C1021,Margaret Hawkins DDS,margaret.hawkins.dds@example.com,Business Financial Consulting,Pending,In Review,Daniel Kowalski,2026-08-17,2025-09-10
+C1022,Patty Perez,patty.perez@example.org,Tax Planning Consultation,Closed,Documents Pending,Priya Nandakumar,2026-08-07,2026-07-27
+C1023,Ethan Adams,ethan.adams@example.org,Retirement Planning,Closed,In Review,Daniel Kowalski,2026-08-19,2026-06-28
+C1024,Tommy Walter,tommy.walter@example.com,Tax Planning Consultation,Active,In Review,Daniel Kowalski,2026-08-22,2026-05-24
+C1025,Matthew Foster,matthew.foster@example.net,Investment Advisory Consultation,Active,Complete,Sofia Reyes,2026-08-13,2025-09-20
+C1026,Judy Baker,judy.baker@example.net,Estate Planning Guidance,Active,In Review,Morgan Ellis,2026-08-14,2026-02-18
+C1027,Justin Baker,justin.baker@example.net,Business Financial Consulting,Active,Complete,Priya Nandakumar,2026-08-19,2026-03-23
+C1028,Stephanie Ross,stephanie.ross@example.net,Retirement Planning,Closed,Complete,Priya Nandakumar,2026-08-19,2025-09-29
+C1029,Zachary Hicks,zachary.hicks@example.com,Business Financial Consulting,Active,Complete,Priya Nandakumar,2026-07-29,2026-06-23
+C1030,Anthony Rodriguez,anthony.rodriguez@example.net,Business Financial Consulting,Pending,Documents Pending,Daniel Kowalski,2026-08-05,2026-03-07
+C1031,Rebecca Henderson,rebecca.henderson@example.com,Estate Planning Guidance,Active,Documents Pending,Jordan Fitzgerald,2026-08-19,2025-11-27
+C1032,James Ferrell,james.ferrell@example.net,Retirement Planning,Pending,Documents Pending,Morgan Ellis,2026-08-13,2025-12-23
+C1033,Tricia Valencia,tricia.valencia@example.com,Business Financial Consulting,Pending,Documents Pending,Aisha Bello,2026-08-03,2026-01-02
+C1034,Nathan Maldonado,nathan.maldonado@example.com,Retirement Planning,Active,Complete,Aisha Bello,2026-08-13,2026-05-17
+C1035,Debra Davidson,debra.davidson@example.net,Retirement Planning,Active,Complete,Morgan Ellis,2026-08-23,2025-10-19
+C1036,Jeffrey Chavez,jeffrey.chavez@example.org,Retirement Planning,Active,Documents Pending,Priya Nandakumar,2026-08-21,2026-03-28
+C1037,Sherri Baker,sherri.baker@example.org,Tax Planning Consultation,Active,Documents Pending,Aisha Bello,2026-08-26,2026-01-14
+C1038,Cassandra Gaines,cassandra.gaines@example.org,Investment Advisory Consultation,Active,In Review,Morgan Ellis,2026-08-03,2025-08-05
+C1039,Elizabeth Fowler,elizabeth.fowler@example.com,Retirement Planning,Pending,In Review,Daniel Kowalski,2026-08-03,2025-10-04
+C1040,Brittany Farmer,brittany.farmer@example.net,Retirement Planning,Closed,In Review,Priya Nandakumar,2026-08-10,2025-11-25
