@@ -103,6 +103,11 @@ def add_document(client_id: str | None, filename: str, document_type: str, statu
         return doc
 
 
+def list_documents_for_client(client_id: str) -> list[Document]:
+    with session_scope() as session:
+        return session.query(Document).filter(Document.client_id == client_id).all()
+
+
 def add_document_extraction(
     document_id: int, extracted_fields: dict, missing_fields: list[str], summary: str
 ) -> DocumentExtraction:
@@ -220,3 +225,8 @@ def log_ai_action(
         session.add(entry)
         session.flush()
         return entry
+
+
+def list_ai_actions(limit: int = 50) -> list[AIActionLog]:
+    with session_scope() as session:
+        return session.query(AIActionLog).order_by(AIActionLog.id.desc()).limit(limit).all()
