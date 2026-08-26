@@ -40,7 +40,7 @@ def retrieve(query: str, k: int = 4) -> list[RetrievedChunk]:
     """Retrieve the top-k most relevant knowledge-base chunks for a query.
 
     Returns an empty list (rather than raising) on retrieval failure -- e.g. an
-    empty/uninitialized index or an OpenAI embedding-API error -- so callers
+    empty/uninitialized index or a local embedding-model error -- so callers
     can show a friendly "nothing found" message instead of crashing.
     """
     try:

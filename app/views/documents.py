@@ -24,7 +24,12 @@ def render() -> None:
 
     uploaded = st.file_uploader("Upload a PDF document", type=["pdf"])
 
-    options = _client_options()
+    try:
+        options = _client_options()
+    except Exception as exc:
+        st.error(f"Could not load clients: {exc}")
+        return
+
     default_index = 0
     detected_client_id = None
 

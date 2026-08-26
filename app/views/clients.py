@@ -61,16 +61,20 @@ def render() -> None:
         st.markdown(f"**Advisor:** {client.assigned_advisor}")
         st.markdown(f"**Last Contact:** {client.last_contact}")
 
-    docs = crud.list_documents_for_client(client_id)
+    try:
+        docs = crud.list_documents_for_client(client_id)
+        open_tasks = crud.list_open_tasks(client_id=client_id)
+        followups = [f for f in crud.list_followups() if f.client_id == client_id]
+    except Exception as exc:
+        st.error(f"Could not load client activity: {exc}")
+        return
+
     st.markdown("**Documents on file**")
     if docs:
         doc_rows = [{"Filename": d.filename, "Type": d.document_type, "Status": d.status} for d in docs]
         st.dataframe(pd.DataFrame(doc_rows), use_container_width=True, hide_index=True)
     else:
         st.caption("No documents on file yet.")
-
-    open_tasks = crud.list_open_tasks(client_id=client_id)
-    followups = [f for f in crud.list_followups() if f.client_id == client_id]
 
     col_a, col_b = st.columns(2)
     with col_a:

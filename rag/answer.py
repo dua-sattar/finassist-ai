@@ -65,7 +65,10 @@ def answer_question(query: str, k: int = 4) -> AnswerResult:
             ],
             max_tokens=350,
         )
-        answer = response.choices[0].message.content.strip()
+        answer = (response.choices[0].message.content or "").strip()
+        if not answer:
+            logger.warning("Groq returned an empty answer for %r", query)
+            return AnswerResult(success=False, query=query, error="Received an empty response from the model.", sources=sources)
         return AnswerResult(success=True, query=query, answer=answer, sources=sources)
     except Exception as exc:
         logger.warning("answer_question failed for %r: %s", query, exc)

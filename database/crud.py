@@ -8,7 +8,7 @@ directly.
 import json
 import logging
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from database.database import SessionLocal
 from database.models import (
@@ -197,7 +197,7 @@ def approve_followup(followup_id: int) -> Followup | None:
             logger.warning("approve_followup: followup %s not found", followup_id)
             return None
         followup.status = "Approved"
-        followup.approved_at = datetime.utcnow()
+        followup.approved_at = datetime.now(timezone.utc)
         return followup
 
 

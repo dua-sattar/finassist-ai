@@ -55,7 +55,15 @@ def _with_banner(render_fn):
 
 
 def main() -> None:
-    _ensure_database_ready()
+    try:
+        _ensure_database_ready()
+    except Exception as exc:
+        st.error(
+            "FinAssist AI could not start because the database could not be initialized. "
+            "Please check the server logs and try again."
+        )
+        logging.getLogger(__name__).error("Database initialization failed: %s", exc, exc_info=True)
+        st.stop()
 
     with st.sidebar:
         st.markdown("## 💼 FinAssist AI")

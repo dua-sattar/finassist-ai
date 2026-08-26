@@ -66,11 +66,19 @@ def render() -> None:
 
             if f.status == "Draft":
                 if st.button("Approve", key=f"approve-{f.id}"):
-                    crud.approve_followup(f.id)
-                    st.rerun()
+                    try:
+                        crud.approve_followup(f.id)
+                    except Exception as exc:
+                        st.error(f"Could not approve this follow-up: {exc}")
+                    else:
+                        st.rerun()
             elif f.status == "Approved":
                 if st.button("Send (Simulated)", key=f"send-{f.id}"):
-                    crud.simulate_send(f.id)
-                    st.rerun()
+                    try:
+                        crud.simulate_send(f.id)
+                    except Exception as exc:
+                        st.error(f"Could not mark this follow-up sent: {exc}")
+                    else:
+                        st.rerun()
             else:
                 st.caption("This follow-up has been sent (simulated).")

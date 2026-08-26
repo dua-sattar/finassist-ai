@@ -60,7 +60,10 @@ def _draft_email(reason: str, recipient_name: str, context: str) -> tuple[str, s
             ],
             max_tokens=300,
         )
-        text = response.choices[0].message.content.strip()
+        text = (response.choices[0].message.content or "").strip()
+        if not text:
+            logger.warning("Groq returned an empty email draft for %s; using template", recipient_name)
+            return fallback_subject, fallback_body
         if text.lower().startswith("subject:"):
             subject_line, _, body = text.partition("\n")
             subject = subject_line.split(":", 1)[1].strip()

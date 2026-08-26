@@ -1,11 +1,6 @@
 # --- Frontend ---
 streamlit>=1.36
 
-# --- Backend / API ---
-fastapi>=0.111
-uvicorn>=0.30
-python-multipart>=0.0.9
-
 # --- AI / Agent ---
 groq>=0.11
 langgraph>=0.1.5
@@ -32,3 +27,6 @@ faker>=25.0
 
 # --- Environment / Config ---
 python-dotenv>=1.0
+
+# --- Testing ---
+pytest>=8.0

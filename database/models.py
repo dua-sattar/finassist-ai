@@ -5,10 +5,14 @@ document_extractions, tasks, followups, conversations) plus ai_action_log,
 which backs the "AI Actions" dashboard view from spec section 17.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from sqlalchemy import ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class Base(DeclarativeBase):
@@ -53,7 +57,7 @@ class Document(Base):
     filename: Mapped[str]
     document_type: Mapped[str]
     status: Mapped[str]  # "Received" | "Invalid"
-    uploaded_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    uploaded_at: Mapped[datetime] = mapped_column(default=_utcnow)
 
 
 class DocumentExtraction(Base):
@@ -64,7 +68,7 @@ class DocumentExtraction(Base):
     extracted_json: Mapped[str] = mapped_column(Text)
     missing_fields_json: Mapped[str] = mapped_column(Text)
     summary: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow)
 
 
 class Task(Base):
@@ -77,7 +81,7 @@ class Task(Base):
     description: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(default="Open")
     priority: Mapped[str | None] = mapped_column(nullable=True)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow)
     due_date: Mapped[date | None] = mapped_column(nullable=True)
 
 
@@ -91,7 +95,7 @@ class Followup(Base):
     subject: Mapped[str]
     body: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(default="Draft")  # Draft | Approved | Sent-simulated
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow)
     approved_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
 
@@ -102,7 +106,7 @@ class Conversation(Base):
     session_id: Mapped[str] = mapped_column(index=True)
     role: Mapped[str]  # user | assistant | tool
     content: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow)
 
 
 class AIActionLog(Base):
@@ -114,4 +118,4 @@ class AIActionLog(Base):
     result_summary: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(default="success")  # success | error
     human_approval_status: Mapped[str | None] = mapped_column(nullable=True)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow)

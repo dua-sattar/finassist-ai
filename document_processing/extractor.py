@@ -115,9 +115,13 @@ def summarize_document(document_type: str, extracted: dict) -> str:
             ],
             max_tokens=150,
         )
-        return response.choices[0].message.content.strip()
+        content = (response.choices[0].message.content or "").strip()
+        if not content:
+            logger.warning("Groq returned an empty summary for %s; using template", client_id)
+            return fallback
+        return content
     except Exception as exc:
-        logger.warning("OpenAI summary call failed for %s: %s", client_id, exc)
+        logger.warning("Groq summary call failed for %s: %s", client_id, exc)
         return fallback
 
 
