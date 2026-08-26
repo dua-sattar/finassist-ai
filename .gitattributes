@@ -1,0 +1,6 @@
+# Ensure binary files are never subject to line-ending conversion.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.db binary
