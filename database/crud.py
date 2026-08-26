@@ -204,6 +204,20 @@ def log_conversation_turn(session_id: str, role: str, content: str) -> Conversat
         return turn
 
 
+def list_conversation_turns(session_id: str, limit: int | None = None) -> list[Conversation]:
+    """Return a session's turns oldest-first. With `limit`, returns only the
+    most recent `limit` turns (still oldest-first) rather than the earliest ones."""
+    with session_scope() as session:
+        query = session.query(Conversation).filter(Conversation.session_id == session_id).order_by(
+            Conversation.id.asc()
+        )
+        if limit:
+            total = query.count()
+            if total > limit:
+                query = query.offset(total - limit)
+        return query.all()
+
+
 # --- AI action log ---------------------------------------------------------
 
 
