@@ -182,6 +182,14 @@ def create_followup(
         return followup
 
 
+def list_followups(status: str | None = None) -> list[Followup]:
+    with session_scope() as session:
+        query = session.query(Followup).order_by(Followup.id.desc())
+        if status:
+            query = query.filter(Followup.status == status)
+        return query.all()
+
+
 def approve_followup(followup_id: int) -> Followup | None:
     with session_scope() as session:
         followup = session.get(Followup, followup_id)

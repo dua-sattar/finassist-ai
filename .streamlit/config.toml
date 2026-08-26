@@ -1,0 +1,12 @@
+[server]
+# "auto" (the default) walks every imported module's __path__ to watch for
+# source changes, including transformers' large lazy-loaded submodule tree
+# (pulled in transitively by sentence-transformers for local embeddings) --
+# each optional vision submodule needing torchvision (which we don't use)
+# fails and gets logged as a full traceback, which is slow and noisy but not
+# fatal. Not needed for a deployed app either.
+fileWatcherType = "none"
+headless = true
+
+[browser]
+gatherUsageStats = false

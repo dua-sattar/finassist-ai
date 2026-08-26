@@ -11,7 +11,12 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from tools.crm_tools import get_client, get_lead, update_client, update_lead
-from tools.document_tools import RequiredDocumentStatus, analyze_document, check_required_documents
+from tools.document_tools import (
+    AnalyzeDocumentResult,
+    RequiredDocumentStatus,
+    analyze_document,
+    check_required_documents,
+)
 from tools.email_tools import generate_followup_email
 from tools.task_tools import create_followup_task
 
@@ -22,6 +27,7 @@ class DocumentReviewResult(BaseModel):
     success: bool
     client_id: str
     found: bool = False
+    analysis: AnalyzeDocumentResult | None = None  # set only if a new document was analyzed this call
     checklist: list[RequiredDocumentStatus] = []
     all_satisfied: bool = False
     missing_categories: list[str] = []
@@ -73,6 +79,7 @@ def review_client_documents(
         logger.info("review_client_documents: client %s not found", client_id)
         return DocumentReviewResult(success=True, client_id=client_id, found=False)
 
+    analysis: AnalyzeDocumentResult | None = None
     if new_document_source is not None:
         analysis = analyze_document(new_document_source, client_id=client_id, filename=new_document_filename)
         if not analysis.success:
@@ -114,6 +121,7 @@ def review_client_documents(
         success=True,
         client_id=client_id,
         found=True,
+        analysis=analysis,
         checklist=check.checklist,
         all_satisfied=check.all_satisfied,
         missing_categories=check.missing_categories,
