@@ -1,8 +1,8 @@
 """Deterministic multi-step business workflows (spec sections 12-13), built
 by orchestrating the Phase 7 tools directly -- distinct from the free-form
 LangGraph chat agent (Phase 8/9), which decides its own tool sequence. A
-dedicated UI action (Phase 14's Document Analysis page) calls these
-directly so the process runs the same way every time.
+dedicated UI action (Phase 14's Document Analysis / Lead Management pages)
+calls these directly so each process runs the same way every time.
 """
 
 import logging
@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from tools.crm_tools import get_client, update_client
+from tools.crm_tools import get_client, get_lead, update_client, update_lead
 from tools.document_tools import RequiredDocumentStatus, analyze_document, check_required_documents
 from tools.email_tools import generate_followup_email
 from tools.task_tools import create_followup_task
@@ -120,5 +120,132 @@ def review_client_documents(
         onboarding_status=new_status,
         task_id=task_id,
         followup_id=followup_id,
+        report=report,
+    )
+
+
+# --- Lead qualification (spec section 13) -----------------------------------
+
+KNOWN_SERVICES = {
+    "Retirement Planning",
+    "Investment Advisory Consultation",
+    "Tax Planning Consultation",
+    "Estate Planning Guidance",
+    "Business Financial Consulting",
+}
+
+# Transparent, documented point system -- NOT a real risk/suitability
+# assessment (spec sections 13/26). engagement_level contributes 0-2,
+# information_complete contributes 0-1, a recognized service_interest
+# contributes 0-1. Total 0-4: >=3 High, ==2 Medium, <=1 Low.
+ENGAGEMENT_POINTS = {"High": 2, "Medium": 1, "Low": 0}
+
+
+class LeadQualificationResult(BaseModel):
+    success: bool
+    lead_id: str
+    found: bool = False
+    priority: str | None = None  # High | Medium | Low
+    score: int | None = None
+    reasons: list[str] = []
+    new_status: str | None = None
+    task_id: int | None = None
+    followup_id: int | None = None
+    report: str = ""
+    error: str | None = None
+
+
+def _priority_from_score(score: int) -> str:
+    if score >= 3:
+        return "High"
+    if score == 2:
+        return "Medium"
+    return "Low"
+
+
+def _recommended_action_for(priority: str) -> str:
+    if priority == "High":
+        return "Schedule advisor follow-up."
+    if priority == "Medium":
+        return "Advisor to follow up within the standard timeframe; request any missing information."
+    return "Add to the nurture sequence; low-touch follow-up only."
+
+
+def _format_lead_report(priority: str, reasons: list[str], recommended_action: str) -> str:
+    lines = [f"Lead Priority: {priority.upper()}", "", "Reason:"]
+    lines += [f"- {r}" for r in reasons]
+    lines += [
+        "",
+        "Recommended Action:",
+        recommended_action,
+        "",
+        "Human review required before finalizing lead priority or sending any communication.",
+    ]
+    return "\n".join(lines)
+
+
+def qualify_lead(lead_id: str) -> LeadQualificationResult:
+    """Assign a transparent, rule-based priority (High/Medium/Low) to a lead,
+    explain the reasoning, update the CRM, and prepare a follow-up task and
+    draft email. Not a real financial risk or suitability assessment."""
+    lead_result = get_lead(lead_id)
+    if not lead_result.success:
+        return LeadQualificationResult(success=False, lead_id=lead_id, error=lead_result.error)
+    if not lead_result.found:
+        logger.info("qualify_lead: lead %s not found", lead_id)
+        return LeadQualificationResult(success=True, lead_id=lead_id, found=False)
+
+    reasons: list[str] = []
+    score = 0
+
+    service_relevant = lead_result.service_interest in KNOWN_SERVICES
+    if service_relevant:
+        reasons.append(f"Relevant service interest ({lead_result.service_interest})")
+        score += 1
+    else:
+        reasons.append(f"Service interest ({lead_result.service_interest}) is outside our standard offerings")
+
+    if lead_result.information_complete:
+        reasons.append("Complete information provided")
+        score += 1
+    else:
+        reasons.append("Missing required lead information")
+
+    engagement = lead_result.engagement_level or "Low"
+    score += ENGAGEMENT_POINTS.get(engagement, 0)
+    reasons.append(f"{engagement} engagement level")
+
+    priority = _priority_from_score(score)
+    recommended_action = _recommended_action_for(priority)
+
+    new_status = "Qualified" if priority in ("High", "Medium") else "Unqualified"
+    update_lead(lead_id, status=new_status)
+
+    task = create_followup_task(
+        description=f"Follow up with lead {lead_id} ({priority} priority): {recommended_action}",
+        task_type="lead_follow_up",
+        lead_id=lead_id,
+        priority=priority,
+    )
+
+    email = generate_followup_email(
+        reason=f"{priority}-priority lead follow-up",
+        recipient_name=lead_result.name or lead_id,
+        context=f"Interested in {lead_result.service_interest}. {recommended_action}",
+        lead_id=lead_id,
+    )
+
+    report = _format_lead_report(priority, reasons, recommended_action)
+
+    return LeadQualificationResult(
+        success=True,
+        lead_id=lead_id,
+        found=True,
+        priority=priority,
+        score=score,
+        reasons=reasons,
+        new_status=new_status,
+        task_id=task.task_id,
+        followup_id=email.followup_id,
         report=report,
     )
