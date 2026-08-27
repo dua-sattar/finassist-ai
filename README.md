@@ -144,6 +144,15 @@ python -m database.seed
 streamlit run app/streamlit_app.py
 ```
 
+> **Windows troubleshooting:** if `pip install` fails partway through with an
+> `OSError` mentioning `onnxruntime` and a very long file path, Windows Long
+> Path support is likely disabled and the clone is nested too deeply (e.g.
+> under several layers of synced/temp folders). Either clone to a shorter
+> path (e.g. `C:\finassist-ai`) or enable long paths: run
+> `reg add HKLM\SYSTEM\CurrentControlSet\Control\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1`
+> as Administrator, then reboot. This doesn't affect Streamlit Community
+> Cloud, which deploys on Linux.
+
 ## Environment Variables
 
 Set these in `.env` for local development (see `.env.example`):
