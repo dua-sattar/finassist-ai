@@ -15,6 +15,7 @@ from langgraph.prebuilt import ToolNode
 from agent import memory
 from agent.prompts import SYSTEM_PROMPT
 from agent.state import AgentState
+from tools.anomaly_tools import detect_anomalies as _detect_anomalies
 from tools.crm_tools import get_client as _get_client
 from tools.crm_tools import get_lead as _get_lead
 from tools.crm_tools import search_clients as _search_clients
@@ -128,6 +129,17 @@ def get_action_center_summary() -> str:
 
 
 @tool
+def detect_anomalies(client_id: str) -> str:
+    """Scan every document already on file for a client for data-quality
+    anomalies: bank-statement math that doesn't reconcile, negative
+    balances, expired government IDs, and client identity mismatches across
+    documents. Read-only, runs against what's already stored -- no new
+    upload needed. Use this when the user asks to check a client for
+    inconsistencies, red flags, or data-quality issues."""
+    return _detect_anomalies(client_id).model_dump_json()
+
+
+@tool
 def analyze_document(filename: str, client_id: str | None = None) -> str:
     """Analyze a document already present in the synthetic documents folder by
     filename, extracting its type, structured fields, missing fields, and an AI
@@ -220,6 +232,7 @@ TOOLS = [
     check_required_documents,
     generate_case_summary,
     get_action_center_summary,
+    detect_anomalies,
     analyze_document,
     update_client,
     update_lead,

@@ -188,6 +188,30 @@ def list_documents_for_client(client_id: str) -> list[Document]:
         return session.query(Document).filter(Document.client_id == client_id).all()
 
 
+def list_documents_with_extractions_for_client(client_id: str) -> list[tuple[Document, DocumentExtraction | None]]:
+    """Every document on file for a client, paired with its most recent
+    extraction (None if extraction failed or hasn't run). Used by anomaly
+    detection to inspect documents already stored, not just a fresh upload
+    batch."""
+    with session_scope() as session:
+        docs = (
+            session.query(Document)
+            .filter(Document.client_id == client_id)
+            .order_by(Document.uploaded_at)
+            .all()
+        )
+        results = []
+        for doc in docs:
+            extraction = (
+                session.query(DocumentExtraction)
+                .filter(DocumentExtraction.document_id == doc.id)
+                .order_by(DocumentExtraction.id.desc())
+                .first()
+            )
+            results.append((doc, extraction))
+        return results
+
+
 def add_document_extraction(
     document_id: int, extracted_fields: dict, missing_fields: list[str], summary: str
 ) -> DocumentExtraction:
