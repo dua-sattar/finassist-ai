@@ -56,6 +56,47 @@ def get_client(client_id: str) -> ClientResult:
         return ClientResult(success=False, client_id=client_id, error=str(exc))
 
 
+class ClientSummary(BaseModel):
+    client_id: str
+    name: str
+    email: str
+    service: str
+    account_status: str
+    onboarding_status: str
+
+
+class SearchClientsResult(BaseModel):
+    success: bool
+    query: str
+    results: list[ClientSummary] = []
+    error: str | None = None
+
+
+def search_clients(query: str, limit: int = 10) -> SearchClientsResult:
+    """Fuzzy-search clients by name, email, or client ID (case-insensitive
+    substring match). Use get_client instead when you already have the exact
+    client_id."""
+    try:
+        clients = crud.search_clients(query, limit=limit)
+        results = [
+            ClientSummary(
+                client_id=c.client_id,
+                name=c.name,
+                email=c.email,
+                service=c.service,
+                account_status=c.account_status,
+                onboarding_status=c.onboarding_status,
+            )
+            for c in clients
+        ]
+        log_action("search_clients", f"query={query!r} limit={limit}", f"{len(results)} matches")
+        return SearchClientsResult(success=True, query=query, results=results)
+    except Exception as exc:
+        logger.warning("search_clients failed for %r: %s", query, exc)
+        log_action("search_clients", f"query={query!r} limit={limit}", str(exc), status="error")
+        return SearchClientsResult(success=False, query=query, error=str(exc))
+
+
 class LeadResult(BaseModel):
     success: bool
     lead_id: str
@@ -101,6 +142,47 @@ def get_lead(lead_id: str) -> LeadResult:
         logger.warning("get_lead failed for %s: %s", lead_id, exc)
         log_action("get_lead", f"lead_id={lead_id}", str(exc), status="error")
         return LeadResult(success=False, lead_id=lead_id, error=str(exc))
+
+
+class LeadSummary(BaseModel):
+    lead_id: str
+    name: str
+    company: str
+    service_interest: str
+    engagement_level: str
+    status: str
+
+
+class SearchLeadsResult(BaseModel):
+    success: bool
+    query: str
+    results: list[LeadSummary] = []
+    error: str | None = None
+
+
+def search_leads(query: str, limit: int = 10) -> SearchLeadsResult:
+    """Fuzzy-search leads by name, company, email, or lead ID (case-
+    insensitive substring match). Use get_lead instead when you already have
+    the exact lead_id."""
+    try:
+        leads = crud.search_leads(query, limit=limit)
+        results = [
+            LeadSummary(
+                lead_id=lead.lead_id,
+                name=lead.name,
+                company=lead.company,
+                service_interest=lead.service_interest,
+                engagement_level=lead.engagement_level,
+                status=lead.status,
+            )
+            for lead in leads
+        ]
+        log_action("search_leads", f"query={query!r} limit={limit}", f"{len(results)} matches")
+        return SearchLeadsResult(success=True, query=query, results=results)
+    except Exception as exc:
+        logger.warning("search_leads failed for %r: %s", query, exc)
+        log_action("search_leads", f"query={query!r} limit={limit}", str(exc), status="error")
+        return SearchLeadsResult(success=False, query=query, error=str(exc))
 
 
 class UpdateResult(BaseModel):

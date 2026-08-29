@@ -1,6 +1,6 @@
 """Tests for the Phase 7 agent tools, against the seeded temp DB (conftest)."""
 
-from tools.crm_tools import get_client, get_lead, update_client, update_lead
+from tools.crm_tools import get_client, get_lead, search_clients, search_leads, update_client, update_lead
 from tools.document_tools import analyze_document, check_required_documents
 from tools.email_tools import generate_followup_email
 from tools.task_tools import create_followup_task
@@ -21,6 +21,30 @@ def test_get_client_not_found():
 def test_get_lead_found():
     result = get_lead("L1001")
     assert result.success and result.found
+
+
+def test_search_clients_fuzzy_match_by_name():
+    result = search_clients("Noah")
+    assert result.success
+    assert any(c.client_id == "C1002" for c in result.results)
+
+
+def test_search_clients_no_match_returns_empty_not_error():
+    result = search_clients("zzz-nonexistent-zzz")
+    assert result.success
+    assert result.results == []
+
+
+def test_search_clients_is_case_insensitive():
+    result = search_clients("NOAH")
+    assert result.success
+    assert any(c.client_id == "C1002" for c in result.results)
+
+
+def test_search_leads_fuzzy_match_by_company():
+    result = search_leads("George")
+    assert result.success
+    assert any(lead.lead_id == "L1001" for lead in result.results)
 
 
 def test_check_required_documents_c1002_missing_government_id():

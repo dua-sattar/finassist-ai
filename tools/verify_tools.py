@@ -6,7 +6,7 @@ import sys
 
 from database import crud
 from database.seed import main as seed_main
-from tools.crm_tools import get_client, get_lead, update_client, update_lead
+from tools.crm_tools import get_client, get_lead, search_clients, search_leads, update_client, update_lead
 from tools.document_tools import analyze_document, check_required_documents
 from tools.email_tools import generate_followup_email
 from tools.knowledge_tools import search_knowledge_base
@@ -39,6 +39,21 @@ def main() -> None:
     r = get_lead("L1001")
     print(f"success={r.success} found={r.found} name={r.name} status={r.status}")
     assert r.success and r.found
+
+    print("\n--- search_clients (fuzzy, by first name) ---")
+    r = search_clients("Noah")
+    print(f"success={r.success} matches={[c.client_id for c in r.results]}")
+    assert r.success and any(c.client_id == "C1002" for c in r.results)
+
+    print("\n--- search_clients (no match) ---")
+    r = search_clients("zzz-nonexistent-zzz")
+    print(f"success={r.success} matches={len(r.results)}")
+    assert r.success and r.results == []
+
+    print("\n--- search_leads (fuzzy, by company fragment) ---")
+    r = search_leads("George")
+    print(f"success={r.success} matches={[lead.lead_id for lead in r.results]}")
+    assert r.success and any(lead.lead_id == "L1001" for lead in r.results)
 
     print("\n--- check_required_documents (C1002, expect missing Government-issued ID) ---")
     r = check_required_documents("C1002")
@@ -93,6 +108,8 @@ def main() -> None:
         "search_knowledge_base",
         "get_client",
         "get_lead",
+        "search_clients",
+        "search_leads",
         "check_required_documents",
         "analyze_document",
         "update_client",
@@ -104,7 +121,7 @@ def main() -> None:
     if missing_from_log:
         print(f"MISSING FROM LOG: {missing_from_log}")
     else:
-        print("OK: all 9 tools logged an ai_action_log entry.")
+        print(f"OK: all {len(expected_tools)} tools logged an ai_action_log entry.")
 
 
 if __name__ == "__main__":

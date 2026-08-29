@@ -17,6 +17,8 @@ from agent.prompts import SYSTEM_PROMPT
 from agent.state import AgentState
 from tools.crm_tools import get_client as _get_client
 from tools.crm_tools import get_lead as _get_lead
+from tools.crm_tools import search_clients as _search_clients
+from tools.crm_tools import search_leads as _search_leads
 from tools.crm_tools import update_client as _update_client
 from tools.crm_tools import update_lead as _update_lead
 from tools.document_tools import analyze_document as _analyze_document
@@ -60,6 +62,23 @@ def get_lead(lead_id: str) -> str:
     company, service_interest, engagement_level, information_complete, source,
     and status."""
     return _get_lead(lead_id).model_dump_json()
+
+
+@tool
+def search_clients(query: str) -> str:
+    """Fuzzy-search FinAssist AI clients by name or email when you don't have
+    an exact client_id (e.g. the user says 'find the client named Noah' or
+    'look up noah.rhodes@example.com'). Returns up to 10 matches. Use
+    get_client instead once you have the exact client_id."""
+    return _search_clients(query).model_dump_json()
+
+
+@tool
+def search_leads(query: str) -> str:
+    """Fuzzy-search FinAssist AI leads by name, company, or email when you
+    don't have an exact lead_id. Returns up to 10 matches. Use get_lead
+    instead once you have the exact lead_id."""
+    return _search_leads(query).model_dump_json()
 
 
 @tool
@@ -150,6 +169,8 @@ TOOLS = [
     search_knowledge_base,
     get_client,
     get_lead,
+    search_clients,
+    search_leads,
     check_required_documents,
     analyze_document,
     update_client,

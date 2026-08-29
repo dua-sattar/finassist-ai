@@ -10,6 +10,8 @@ import logging
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
 
+from sqlalchemy import func, or_
+
 from database.database import SessionLocal
 from database.models import (
     AIActionLog,
@@ -54,6 +56,24 @@ def list_clients(account_status: str | None = None) -> list[Client]:
         return query.all()
 
 
+def search_clients(query: str, limit: int = 10) -> list[Client]:
+    """Case-insensitive substring match across client_id, name, and email."""
+    needle = f"%{query.strip().lower()}%"
+    with session_scope() as session:
+        return (
+            session.query(Client)
+            .filter(
+                or_(
+                    func.lower(Client.client_id).like(needle),
+                    func.lower(Client.name).like(needle),
+                    func.lower(Client.email).like(needle),
+                )
+            )
+            .limit(limit)
+            .all()
+        )
+
+
 def update_client(client_id: str, **fields) -> Client | None:
     with session_scope() as session:
         client = session.get(Client, client_id)
@@ -79,6 +99,25 @@ def list_leads(status: str | None = None) -> list[Lead]:
         if status:
             query = query.filter(Lead.status == status)
         return query.all()
+
+
+def search_leads(query: str, limit: int = 10) -> list[Lead]:
+    """Case-insensitive substring match across lead_id, name, company, and email."""
+    needle = f"%{query.strip().lower()}%"
+    with session_scope() as session:
+        return (
+            session.query(Lead)
+            .filter(
+                or_(
+                    func.lower(Lead.lead_id).like(needle),
+                    func.lower(Lead.name).like(needle),
+                    func.lower(Lead.company).like(needle),
+                    func.lower(Lead.email).like(needle),
+                )
+            )
+            .limit(limit)
+            .all()
+        )
 
 
 def update_lead(lead_id: str, **fields) -> Lead | None:
