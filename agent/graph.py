@@ -26,6 +26,7 @@ from tools.document_tools import check_required_documents as _check_required_doc
 from tools.email_tools import generate_followup_email as _generate_followup_email
 from tools.knowledge_tools import search_knowledge_base as _search_knowledge_base
 from tools.search_tools import global_search as _global_search
+from tools.summary_tools import generate_case_summary as _generate_case_summary
 from tools.task_tools import create_followup_task as _create_followup_task
 
 logger = logging.getLogger(__name__)
@@ -100,6 +101,17 @@ def check_required_documents(client_id: str) -> str:
     Proof of Address, Recent Financial Statement, Completed Application Form) a
     client has on file, and which are missing."""
     return _check_required_documents(client_id).model_dump_json()
+
+
+@tool
+def generate_case_summary(client_id: str) -> str:
+    """Generate a full case summary for a client: service, onboarding status,
+    required-documents checklist, recent activity (documents/tasks/follow-ups),
+    an AI-narrated summary, and a recommended action. Read-only -- does not
+    change anything. Use this when the user asks for an overview, status, or
+    "what's going on with" a specific client, rather than calling several
+    narrower tools yourself."""
+    return _generate_case_summary(client_id).model_dump_json()
 
 
 @tool
@@ -186,6 +198,7 @@ TOOLS = [
     search_leads,
     global_search,
     check_required_documents,
+    generate_case_summary,
     analyze_document,
     update_client,
     update_lead,

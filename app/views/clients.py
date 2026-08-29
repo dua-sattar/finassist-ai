@@ -7,6 +7,7 @@ import streamlit as st
 from agent.workflows import review_client_documents
 from app.components.status_badge import render_status_badge
 from database import crud
+from tools.summary_tools import generate_case_summary
 
 
 def render() -> None:
@@ -93,12 +94,29 @@ def render() -> None:
             st.caption("None.")
 
     st.divider()
-    report_key = f"last_review_report_{client_id}"
-    if st.button("Run Document Review Workflow", key=f"review-{client_id}"):
-        with st.spinner("Reviewing required documents..."):
-            result = review_client_documents(client_id)
-        st.session_state[report_key] = result.report
-        st.rerun()
+    review_key = f"last_review_report_{client_id}"
+    summary_key = f"last_case_summary_{client_id}"
 
-    if st.session_state.get(report_key):
-        st.text(st.session_state[report_key])
+    col_review, col_summary = st.columns(2)
+    with col_review:
+        if st.button("Run Document Review Workflow", key=f"review-{client_id}"):
+            with st.spinner("Reviewing required documents..."):
+                result = review_client_documents(client_id)
+            st.session_state[review_key] = result.report
+            st.session_state.pop(summary_key, None)
+            st.rerun()
+    with col_summary:
+        if st.button("Generate Case Summary", key=f"summary-{client_id}"):
+            with st.spinner("Generating AI case summary..."):
+                result = generate_case_summary(client_id)
+            if result.success:
+                st.session_state[summary_key] = result.report
+                st.session_state.pop(review_key, None)
+            else:
+                st.error(f"Could not generate case summary: {result.error}")
+            st.rerun()
+
+    if st.session_state.get(review_key):
+        st.text(st.session_state[review_key])
+    elif st.session_state.get(summary_key):
+        st.text(st.session_state[summary_key])
