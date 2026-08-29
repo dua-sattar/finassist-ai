@@ -597,3 +597,241 @@ def analyze_multiple_documents(client_id: str, files: list[tuple[bytes, str]]) -
         recommended_action=recommended_action,
         report=report,
     )
+
+
+# --- Document Comparison (spec section 9) ------------------------------------
+
+_COMPARISON_SYSTEM_PROMPT = (
+    "You are FinAssist AI's document-review assistant. You are given the extracted "
+    "fields from two documents for the same client -- e.g. two bank statements from "
+    "different periods -- along with which fields changed between them. Write a "
+    "brief, neutral observation (2-4 sentences) describing only what actually "
+    "changed, using the values given. Do not invent facts. Do NOT make any "
+    "approval, risk, or fraud determination -- only describe the changes."
+)
+
+
+class FieldComparison(BaseModel):
+    field: str
+    value_a: str | float | None = None
+    value_b: str | float | None = None
+    changed: bool
+    delta: float | None = None
+
+
+class DocumentComparisonResult(BaseModel):
+    success: bool
+    client_id: str
+    found: bool = False
+    document_a: DocumentBatchItem | None = None
+    document_b: DocumentBatchItem | None = None
+    document_type_mismatch: bool = False
+    field_comparisons: list[FieldComparison] = []
+    changed_fields: list[str] = []
+    ai_observation: str = ""
+    recommended_action: str = ""
+    report: str = ""
+    error: str | None = None
+
+
+def _fallback_comparison_observation(
+    item_a: DocumentBatchItem,
+    item_b: DocumentBatchItem,
+    type_mismatch: bool,
+    comparisons: list[FieldComparison],
+    changed_fields: list[str],
+) -> str:
+    if type_mismatch:
+        return (
+            f"Compared a {item_a.document_type} ({item_a.filename}) against a "
+            f"{item_b.document_type} ({item_b.filename}) -- these are different "
+            "document types, so a field-by-field comparison may not be meaningful."
+        )
+    if not changed_fields:
+        return f"No differences found between {item_a.filename} and {item_b.filename}."
+
+    parts = [f"{len(changed_fields)} field(s) differ between {item_a.filename} and {item_b.filename}."]
+    numeric_changes = [c for c in comparisons if c.changed and c.delta is not None]
+    for c in numeric_changes[:3]:
+        direction = "increased" if c.delta > 0 else "decreased"
+        parts.append(f"{c.field.replace('_', ' ')} {direction} by {abs(c.delta):,.2f} ({c.value_a} -> {c.value_b}).")
+    return " ".join(parts)
+
+
+def _generate_comparison_observation(
+    client_id: str,
+    item_a: DocumentBatchItem,
+    item_b: DocumentBatchItem,
+    type_mismatch: bool,
+    comparisons: list[FieldComparison],
+    changed_fields: list[str],
+) -> str:
+    fallback = _fallback_comparison_observation(item_a, item_b, type_mismatch, comparisons, changed_fields)
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return fallback
+
+    try:
+        from groq import Groq
+
+        client = Groq(api_key=api_key)
+        model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+        diff_lines = "\n".join(
+            f"- {c.field}: {c.value_a} -> {c.value_b}" + (f" (delta {c.delta:+})" if c.delta is not None else "")
+            for c in comparisons
+            if c.changed
+        )
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": _COMPARISON_SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Client: {client_id}\n"
+                        f"Document A: {item_a.filename} ({item_a.document_type})\n"
+                        f"Document B: {item_b.filename} ({item_b.document_type})\n"
+                        f"Document types differ: {type_mismatch}\n"
+                        f"Changed fields:\n{diff_lines or 'none'}"
+                    ),
+                },
+            ],
+            max_tokens=200,
+        )
+        text = (response.choices[0].message.content or "").strip()
+        return text or fallback
+    except Exception as exc:
+        logger.warning("Groq document comparison call failed for %s: %s", client_id, exc)
+        return fallback
+
+
+def _format_comparison_report(
+    client_id: str,
+    client_name: str,
+    item_a: DocumentBatchItem,
+    item_b: DocumentBatchItem,
+    type_mismatch: bool,
+    comparisons: list[FieldComparison],
+    ai_observation: str,
+    recommended_action: str,
+) -> str:
+    lines = [
+        "DOCUMENT COMPARISON",
+        "",
+        f"Client: {client_id} ({client_name})",
+        f"Document A: {item_a.filename} ({item_a.document_type})" + ("" if item_a.success else f" -- FAILED: {item_a.error}"),
+        f"Document B: {item_b.filename} ({item_b.document_type})" + ("" if item_b.success else f" -- FAILED: {item_b.error}"),
+        "",
+    ]
+
+    if type_mismatch:
+        lines += ["Document types differ -- comparison may not be meaningful.", ""]
+
+    if comparisons:
+        lines.append("Field-by-Field Comparison:")
+        for c in comparisons:
+            mark = "changed" if c.changed else "same"
+            delta_str = f" (delta {c.delta:+,.2f})" if c.delta is not None else ""
+            lines.append(f"[{mark}] {c.field}: {c.value_a} -> {c.value_b}{delta_str}")
+        lines.append("")
+
+    lines += [
+        "AI Observation:",
+        ai_observation,
+        "",
+        "Recommended Action:",
+        recommended_action,
+        "",
+        "Human Review Required",
+    ]
+    return "\n".join(lines)
+
+
+def compare_documents(
+    client_id: str, file_a: tuple[bytes, str], file_b: tuple[bytes, str]
+) -> DocumentComparisonResult:
+    """Compare two documents for one client field-by-field -- e.g. two bank
+    statements from different periods -- flagging what changed and by how
+    much. Works even when the two documents are of different types (flagged
+    as a mismatch) or one fails to extract. Never makes an approval, risk, or
+    fraud determination -- always ends with a human-review notice."""
+    client_result = get_client(client_id)
+    if not client_result.success:
+        return DocumentComparisonResult(success=False, client_id=client_id, error=client_result.error)
+    if not client_result.found:
+        return DocumentComparisonResult(success=True, client_id=client_id, found=False)
+
+    bytes_a, name_a = file_a
+    bytes_b, name_b = file_b
+    analysis_a = analyze_document(bytes_a, client_id=client_id, filename=name_a)
+    analysis_b = analyze_document(bytes_b, client_id=client_id, filename=name_b)
+
+    item_a = DocumentBatchItem(
+        filename=name_a, success=analysis_a.success, document_type=analysis_a.document_type,
+        extracted_fields=analysis_a.extracted_fields, missing_fields=analysis_a.missing_fields, error=analysis_a.error,
+    )
+    item_b = DocumentBatchItem(
+        filename=name_b, success=analysis_b.success, document_type=analysis_b.document_type,
+        extracted_fields=analysis_b.extracted_fields, missing_fields=analysis_b.missing_fields, error=analysis_b.error,
+    )
+
+    client_name = client_result.name or client_id
+
+    if not (analysis_a.success and analysis_b.success):
+        ai_observation = "Comparison could not be completed because one or both documents failed to extract -- see the errors above."
+        recommended_action = "Re-upload the failed document(s) and try again."
+        report = _format_comparison_report(
+            client_id, client_name, item_a, item_b, False, [], ai_observation, recommended_action
+        )
+        return DocumentComparisonResult(
+            success=True, client_id=client_id, found=True, document_a=item_a, document_b=item_b,
+            ai_observation=ai_observation, recommended_action=recommended_action, report=report,
+        )
+
+    type_mismatch = analysis_a.document_type != analysis_b.document_type
+
+    all_keys = sorted(set(analysis_a.extracted_fields) | set(analysis_b.extracted_fields))
+    comparisons: list[FieldComparison] = []
+    changed_fields: list[str] = []
+    for key in all_keys:
+        if key == "client_id":
+            continue
+        val_a = analysis_a.extracted_fields.get(key)
+        val_b = analysis_b.extracted_fields.get(key)
+        changed = val_a != val_b
+        delta = None
+        if changed and isinstance(val_a, (int, float)) and isinstance(val_b, (int, float)):
+            delta = round(val_b - val_a, 2)
+        comparisons.append(FieldComparison(field=key, value_a=val_a, value_b=val_b, changed=changed, delta=delta))
+        if changed:
+            changed_fields.append(key)
+
+    ai_observation = _generate_comparison_observation(client_id, item_a, item_b, type_mismatch, comparisons, changed_fields)
+
+    if type_mismatch:
+        recommended_action = (
+            f"Documents are of different types ({analysis_a.document_type} vs {analysis_b.document_type}) -- "
+            "confirm the correct pair was uploaded before drawing conclusions."
+        )
+    elif changed_fields:
+        recommended_action = f"Review the following changed field(s) with the client: {', '.join(changed_fields)}."
+    else:
+        recommended_action = "No differences detected between the two documents."
+
+    report = _format_comparison_report(
+        client_id, client_name, item_a, item_b, type_mismatch, comparisons, ai_observation, recommended_action
+    )
+
+    return DocumentComparisonResult(
+        success=True,
+        client_id=client_id,
+        found=True,
+        document_a=item_a,
+        document_b=item_b,
+        document_type_mismatch=type_mismatch,
+        field_comparisons=comparisons,
+        changed_fields=changed_fields,
+        ai_observation=ai_observation,
+        recommended_action=recommended_action,
+        report=report,
+    )

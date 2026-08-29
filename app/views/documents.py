@@ -1,11 +1,12 @@
 """Document Analysis page: upload a PDF, identify the client, run the full
 Phase 3/10 extraction + document-review pipeline, and show the results.
 Phase 24 adds a Multi-Document Analysis tab for uploading several documents
-for one client at once and checking cross-document consistency."""
+for one client at once and checking cross-document consistency. Phase 25
+adds a Document Comparison tab for diffing two documents field-by-field."""
 
 import streamlit as st
 
-from agent.workflows import analyze_multiple_documents, review_client_documents
+from agent.workflows import analyze_multiple_documents, compare_documents, review_client_documents
 from app.components.status_badge import render_status_badge
 from database import crud
 from document_processing.extractor import extract_fields
@@ -24,13 +25,16 @@ def render() -> None:
         "AI summary, and check them against the client's onboarding requirements."
     )
 
-    single_tab, multi_tab = st.tabs(["Single Document", "Multi-Document Analysis"])
+    single_tab, multi_tab, compare_tab = st.tabs(["Single Document", "Multi-Document Analysis", "Document Comparison"])
 
     with single_tab:
         _render_single_document()
 
     with multi_tab:
         _render_multi_document()
+
+    with compare_tab:
+        _render_comparison()
 
 
 def _render_single_document() -> None:
@@ -203,6 +207,96 @@ def _render_multi_document() -> None:
         st.success("Client name is consistent across the batch.")
 
     render_status_badge(result.overall_status)
+
+    st.markdown("**AI Observation**")
+    st.info(result.ai_observation)
+
+    st.markdown("**Recommended Action**")
+    st.warning(result.recommended_action)
+
+    with st.expander("Full report"):
+        st.text(result.report)
+
+
+def _render_comparison() -> None:
+    st.caption(
+        "Upload two documents for the same client -- e.g. two bank statements from different "
+        "periods -- to see what changed between them, field by field."
+    )
+
+    try:
+        options = _client_options()
+    except Exception as exc:
+        st.error(f"Could not load clients: {exc}")
+        return
+
+    if not options:
+        st.warning("No clients found in the CRM yet.")
+        return
+
+    selected_label = st.selectbox("Client", list(options.keys()), key="compare-doc-client")
+    client_id = options[selected_label]
+
+    col1, col2 = st.columns(2)
+    with col1:
+        file_a = st.file_uploader("Document A", type=["pdf"], key="compare-doc-a")
+    with col2:
+        file_b = st.file_uploader("Document B", type=["pdf"], key="compare-doc-b")
+
+    compare_clicked = st.button(
+        "Compare Documents", type="primary", disabled=(file_a is None or file_b is None), key="compare-doc-analyze"
+    )
+
+    if not compare_clicked:
+        return
+
+    with st.spinner("Extracting and comparing..."):
+        try:
+            result = compare_documents(
+                client_id, (file_a.getvalue(), file_a.name), (file_b.getvalue(), file_b.name)
+            )
+        except Exception as exc:
+            st.error(f"Document comparison failed: {exc}")
+            return
+
+    if not result.success:
+        st.error(f"Could not complete document comparison: {result.error}")
+        return
+    if not result.found:
+        st.error(f"Client {client_id} not found.")
+        return
+
+    if not (result.document_a.success and result.document_b.success):
+        if not result.document_a.success:
+            st.error(f"Document A ({result.document_a.filename}) failed to extract: {result.document_a.error}")
+        if not result.document_b.success:
+            st.error(f"Document B ({result.document_b.filename}) failed to extract: {result.document_b.error}")
+        st.info(result.ai_observation)
+        return
+
+    if result.document_type_mismatch:
+        st.warning(
+            f"Document types differ: **{result.document_a.document_type}** vs "
+            f"**{result.document_b.document_type}** -- comparison may not be meaningful."
+        )
+
+    st.subheader("Field-by-Field Comparison")
+    rows = [
+        {
+            "Field": c.field,
+            "Document A": c.value_a if c.value_a is not None else "(not provided)",
+            "Document B": c.value_b if c.value_b is not None else "(not provided)",
+            "Changed": "Yes" if c.changed else "No",
+            "Delta": c.delta if c.delta is not None else "",
+        }
+        for c in result.field_comparisons
+    ]
+    st.dataframe(rows, use_container_width=True, hide_index=True)
+
+    if result.changed_fields:
+        st.warning(f"{len(result.changed_fields)} field(s) changed: {', '.join(result.changed_fields)}")
+    else:
+        st.success("No differences detected between the two documents.")
 
     st.markdown("**AI Observation**")
     st.info(result.ai_observation)
