@@ -118,15 +118,23 @@ class ComposeEmailResult(BaseModel):
 
 
 def compose_email(
-    subject: str, body: str, client_id: str | None = None, lead_id: str | None = None, source: str = "manual"
+    subject: str,
+    body: str,
+    client_id: str | None = None,
+    lead_id: str | None = None,
+    to_email: str | None = None,
+    source: str = "manual",
 ) -> ComposeEmailResult:
     """Save a manually written (or template-filled) email as a Draft, pending
-    human approval -- never sent automatically."""
+    human approval -- never sent automatically. Use to_email for a recipient
+    with no client/lead record yet (e.g. a contact-form submitter)."""
     try:
-        followup = crud.create_followup(subject=subject, body=body, client_id=client_id, lead_id=lead_id, source=source)
+        followup = crud.create_followup(
+            subject=subject, body=body, client_id=client_id, lead_id=lead_id, to_email=to_email, source=source
+        )
         log_action(
             "compose_email",
-            f"client_id={client_id} lead_id={lead_id} source={source} subject={subject!r}",
+            f"client_id={client_id} lead_id={lead_id} to_email={to_email} source={source} subject={subject!r}",
             f"followup_id={followup.id}",
             human_approval_status="N/A",
         )

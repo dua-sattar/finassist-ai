@@ -16,6 +16,7 @@ from database.database import SessionLocal
 from database.models import (
     AIActionLog,
     Client,
+    ContactSubmission,
     Conversation,
     Document,
     DocumentExtraction,
@@ -86,6 +87,46 @@ def update_client(client_id: str, **fields) -> Client | None:
 
 
 # --- Leads -------------------------------------------------------------
+
+
+def next_lead_id() -> str:
+    """Generate the next unused lead_id (e.g. "L1041"), continuing the
+    seeded L1001... numbering."""
+    with session_scope() as session:
+        existing = [lead_id for (lead_id,) in session.query(Lead.lead_id).all()]
+    numbers = [int(lid[1:]) for lid in existing if lid.startswith("L") and lid[1:].isdigit()]
+    next_number = (max(numbers) + 1) if numbers else 1001
+    return f"L{next_number}"
+
+
+def create_lead(
+    lead_id: str,
+    name: str,
+    email: str,
+    company: str,
+    service_interest: str,
+    engagement_level: str,
+    information_complete: bool,
+    source: str,
+    status: str = "New",
+) -> Lead:
+    with session_scope() as session:
+        lead = Lead(
+            lead_id=lead_id,
+            name=name,
+            email=email,
+            company=company,
+            service_interest=service_interest,
+            engagement_level=engagement_level,
+            information_complete=information_complete,
+            source=source,
+            status=status,
+            created_date=date.today(),
+            last_contact=date.today(),
+        )
+        session.add(lead)
+        session.flush()
+        return lead
 
 
 def get_lead(lead_id: str) -> Lead | None:
@@ -205,6 +246,7 @@ def create_followup(
     body: str,
     client_id: str | None = None,
     lead_id: str | None = None,
+    to_email: str | None = None,
     channel: str = "email",
     source: str = "manual",
     reason: str | None = None,
@@ -215,6 +257,7 @@ def create_followup(
         followup = Followup(
             client_id=client_id,
             lead_id=lead_id,
+            to_email=to_email,
             channel=channel,
             subject=subject,
             body=body,
@@ -344,3 +387,42 @@ def log_ai_action(
 def list_ai_actions(limit: int = 50) -> list[AIActionLog]:
     with session_scope() as session:
         return session.query(AIActionLog).order_by(AIActionLog.id.desc()).limit(limit).all()
+
+
+# --- Contact submissions (Phase 19) -----------------------------------------
+
+
+def create_contact_submission(
+    name: str, email: str, subject: str, message: str, phone: str | None = None
+) -> ContactSubmission:
+    with session_scope() as session:
+        submission = ContactSubmission(name=name, email=email, phone=phone, subject=subject, message=message)
+        session.add(submission)
+        session.flush()
+        return submission
+
+
+def get_contact_submission(submission_id: int) -> ContactSubmission | None:
+    with session_scope() as session:
+        return session.get(ContactSubmission, submission_id)
+
+
+def update_contact_submission(submission_id: int, **fields) -> ContactSubmission | None:
+    with session_scope() as session:
+        submission = session.get(ContactSubmission, submission_id)
+        if submission is None:
+            logger.warning("update_contact_submission: submission %s not found", submission_id)
+            return None
+        for key, value in fields.items():
+            setattr(submission, key, value)
+        return submission
+
+
+def list_contact_submissions(category: str | None = None, status: str | None = None) -> list[ContactSubmission]:
+    with session_scope() as session:
+        query = session.query(ContactSubmission).order_by(ContactSubmission.id.desc())
+        if category:
+            query = query.filter(ContactSubmission.category == category)
+        if status:
+            query = query.filter(ContactSubmission.status == status)
+        return query.all()

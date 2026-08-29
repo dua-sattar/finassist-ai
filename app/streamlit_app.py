@@ -28,6 +28,7 @@ from app.views import (  # noqa: E402
     ai_actions,
     assistant,
     clients,
+    contact_us,
     dashboard,
     documents,
     email_center,
@@ -82,6 +83,7 @@ def main() -> None:
         st.Page(_with_banner(leads.render), title="Lead Management", icon="🎯", url_path="leads"),
         st.Page(_with_banner(followups.render), title="Follow-ups", icon="✅", url_path="followups"),
         st.Page(_with_banner(email_center.render), title="Email Center", icon="📧", url_path="email-center"),
+        st.Page(_with_banner(contact_us.render), title="Contact Us", icon="📞", url_path="contact-us"),
         st.Page(_with_banner(ai_actions.render), title="AI Actions", icon="🪵", url_path="ai-actions"),
     ]
     nav = st.navigation(pages)

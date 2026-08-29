@@ -229,6 +229,43 @@ def update_client(
         return UpdateResult(success=False, record_id=client_id, error=str(exc))
 
 
+class CreateLeadResult(BaseModel):
+    success: bool
+    lead_id: str | None = None
+    error: str | None = None
+
+
+def create_lead(
+    name: str,
+    email: str,
+    service_interest: str,
+    engagement_level: str = "Medium",
+    information_complete: bool = False,
+    source: str = "Contact Form",
+    company: str = "",
+) -> CreateLeadResult:
+    """Create a new lead record, auto-generating the next lead_id (e.g. from
+    a Contact Us submission classified as a potential lead)."""
+    try:
+        lead_id = crud.next_lead_id()
+        crud.create_lead(
+            lead_id=lead_id,
+            name=name,
+            email=email,
+            company=company,
+            service_interest=service_interest,
+            engagement_level=engagement_level,
+            information_complete=information_complete,
+            source=source,
+        )
+        log_action("create_lead", f"name={name!r} source={source} service_interest={service_interest}", f"lead_id={lead_id}")
+        return CreateLeadResult(success=True, lead_id=lead_id)
+    except Exception as exc:
+        logger.warning("create_lead failed for %r: %s", name, exc)
+        log_action("create_lead", f"name={name!r} source={source}", str(exc), status="error")
+        return CreateLeadResult(success=False, error=str(exc))
+
+
 def update_lead(
     lead_id: str,
     status: str | None = None,

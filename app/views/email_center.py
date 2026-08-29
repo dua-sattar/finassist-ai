@@ -108,7 +108,7 @@ def _render_drafts_tab() -> None:
 
     for f in drafts:
         with st.expander(f"#{f.id} -- {f.subject} ({f.source})"):
-            st.markdown(f"**To:** {f.client_id or f.lead_id or 'unknown'}  \n**Source:** {f.source}")
+            st.markdown(f"**To:** {f.client_id or f.lead_id or f.to_email or 'unknown'}  \n**Source:** {f.source}")
             edit_key = f"draft-editing-{f.id}"
 
             if st.session_state.get(edit_key, False):
@@ -171,7 +171,7 @@ def _render_followups_tab() -> None:
 
     for f in approved:
         with st.expander(f"#{f.id} -- {f.subject}"):
-            st.markdown(f"**To:** {f.client_id or f.lead_id or 'unknown'}")
+            st.markdown(f"**To:** {f.client_id or f.lead_id or f.to_email or 'unknown'}")
             st.text(f.body)
             if st.button("Send (Simulated)", key=f"send-{f.id}", type="primary"):
                 try:
@@ -196,7 +196,7 @@ def _render_sent_tab() -> None:
         return
 
     rows = [
-        {"ID": f.id, "Subject": f.subject, "To": f.client_id or f.lead_id or "", "Created": f.created_at}
+        {"ID": f.id, "Subject": f.subject, "To": f.client_id or f.lead_id or f.to_email or "", "Created": f.created_at}
         for f in sent
     ]
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)

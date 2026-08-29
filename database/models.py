@@ -1,8 +1,9 @@
 """SQLAlchemy models for the FinAssist AI mock CRM.
 
-8 tables: the 7 from spec section 14 (clients, leads, documents,
-document_extractions, tasks, followups, conversations) plus ai_action_log,
-which backs the "AI Actions" dashboard view from spec section 17.
+10 tables: the 7 from spec section 14 (clients, leads, documents,
+document_extractions, tasks, followups, conversations) plus ai_action_log
+(spec section 17's AI Actions view), and contact_submissions (Phase 19's
+Contact Us intake).
 """
 
 from datetime import date, datetime, timezone
@@ -91,6 +92,9 @@ class Followup(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.client_id"), nullable=True)
     lead_id: Mapped[str | None] = mapped_column(ForeignKey("leads.lead_id"), nullable=True)
+    # For a recipient with no client/lead record yet (e.g. a contact-form
+    # submitter who wasn't classified as a lead).
+    to_email: Mapped[str | None] = mapped_column(nullable=True)
     channel: Mapped[str] = mapped_column(default="email")
     subject: Mapped[str]
     body: Mapped[str] = mapped_column(Text)
@@ -124,4 +128,27 @@ class AIActionLog(Base):
     result_summary: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(default="success")  # success | error
     human_approval_status: Mapped[str | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow)
+
+
+class ContactSubmission(Base):
+    """A public Contact Us form submission -- doubles as the "ticket" record
+    for every category; gains a lead_id once AI classification identifies it
+    as a potential lead (spec sections 17/18)."""
+
+    __tablename__ = "contact_submissions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    email: Mapped[str]
+    phone: Mapped[str | None] = mapped_column(nullable=True)
+    subject: Mapped[str]
+    message: Mapped[str] = mapped_column(Text)
+    # Set after AI classification runs.
+    category: Mapped[str | None] = mapped_column(nullable=True)
+    priority: Mapped[str | None] = mapped_column(nullable=True)  # High | Medium | Low
+    ai_suggested_response: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Set only if category == "Potential Lead" and a Lead record was created.
+    lead_id: Mapped[str | None] = mapped_column(ForeignKey("leads.lead_id"), nullable=True)
+    status: Mapped[str] = mapped_column(default="New")  # New | Reviewed
     created_at: Mapped[datetime] = mapped_column(default=_utcnow)

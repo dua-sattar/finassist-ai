@@ -10,7 +10,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from tools.crm_tools import get_client, get_lead, update_client, update_lead
+from tools.contact_tools import classify_contact_submission, create_contact_submission, update_contact_submission
+from tools.crm_tools import create_lead, get_client, get_lead, update_client, update_lead
 from tools.document_tools import (
     AnalyzeDocumentResult,
     RequiredDocumentStatus,
@@ -257,3 +258,76 @@ def qualify_lead(lead_id: str) -> LeadQualificationResult:
         followup_id=email.followup_id,
         report=report,
     )
+
+
+# --- Contact Us intake (spec sections 17-18) ---------------------------------
+
+
+class ContactSubmissionResult(BaseModel):
+    success: bool
+    submission_id: int | None = None
+    category: str | None = None
+    priority: str | None = None
+    suggested_response: str | None = None
+    created_lead_id: str | None = None
+    lead_qualification: LeadQualificationResult | None = None
+    task_id: int | None = None
+    error: str | None = None
+
+
+def process_contact_submission(
+    name: str, email: str, subject: str, message: str, phone: str | None = None
+) -> ContactSubmissionResult:
+    """Full contact-intake workflow (spec sections 17/18): record the
+    submission (it doubles as the ticket), classify it via AI, and -- only
+    if it looks like a genuine new-business inquiry -- create a real Lead
+    record and run it straight through Phase 11's qualify_lead, so a
+    Contact Us submission gets the exact same CRM update + follow-up task +
+    draft email a manually-added lead would."""
+    created = create_contact_submission(name=name, email=email, subject=subject, message=message, phone=phone)
+    if not created.success:
+        return ContactSubmissionResult(success=False, error=created.error)
+
+    submission_id = created.submission_id
+    classification = classify_contact_submission(subject, message)
+
+    update_contact_submission(
+        submission_id,
+        category=classification.category,
+        priority=classification.priority,
+        ai_suggested_response=classification.suggested_response,
+    )
+
+    result = ContactSubmissionResult(
+        success=True,
+        submission_id=submission_id,
+        category=classification.category,
+        priority=classification.priority,
+        suggested_response=classification.suggested_response,
+    )
+
+    if classification.category == "Potential Lead":
+        lead = create_lead(
+            name=name,
+            email=email,
+            service_interest=classification.service_interest or "Retirement Planning",
+            engagement_level="Medium",
+            information_complete=bool(phone) and bool(classification.service_interest),
+            source="Contact Form",
+        )
+        if lead.success:
+            update_contact_submission(submission_id, lead_id=lead.lead_id)
+            result.created_lead_id = lead.lead_id
+            result.lead_qualification = qualify_lead(lead.lead_id)
+        else:
+            logger.warning("process_contact_submission: lead creation failed: %s", lead.error)
+    else:
+        task = create_followup_task(
+            description=f"Review contact form ticket #{submission_id} ({classification.category}): {subject}",
+            task_type="contact_ticket",
+            priority=classification.priority,
+        )
+        if task.success:
+            result.task_id = task.task_id
+
+    return result
