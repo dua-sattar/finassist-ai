@@ -206,6 +206,10 @@ def create_followup(
     client_id: str | None = None,
     lead_id: str | None = None,
     channel: str = "email",
+    source: str = "manual",
+    reason: str | None = None,
+    recipient_name: str | None = None,
+    context: str | None = None,
 ) -> Followup:
     with session_scope() as session:
         followup = Followup(
@@ -215,6 +219,10 @@ def create_followup(
             subject=subject,
             body=body,
             status="Draft",
+            source=source,
+            reason=reason,
+            recipient_name=recipient_name,
+            context=context,
         )
         session.add(followup)
         session.flush()
@@ -227,6 +235,29 @@ def list_followups(status: str | None = None) -> list[Followup]:
         if status:
             query = query.filter(Followup.status == status)
         return query.all()
+
+
+def update_followup(followup_id: int, subject: str | None = None, body: str | None = None) -> Followup | None:
+    """Edit a Draft followup's subject/body in place. Refuses (returns None)
+    if not found or not still Draft -- an Approved/Sent email must not be
+    silently altered after the fact."""
+    with session_scope() as session:
+        followup = session.get(Followup, followup_id)
+        if followup is None:
+            logger.warning("update_followup: followup %s not found", followup_id)
+            return None
+        if followup.status != "Draft":
+            logger.warning(
+                "update_followup: followup %s is %s, not Draft -- refusing edit",
+                followup_id,
+                followup.status,
+            )
+            return None
+        if subject is not None:
+            followup.subject = subject
+        if body is not None:
+            followup.body = body
+        return followup
 
 
 def approve_followup(followup_id: int) -> Followup | None:

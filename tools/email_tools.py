@@ -85,7 +85,16 @@ def generate_followup_email(
     -- never sent automatically."""
     try:
         subject, body = _draft_email(reason, recipient_name, context)
-        followup = crud.create_followup(subject=subject, body=body, client_id=client_id, lead_id=lead_id)
+        followup = crud.create_followup(
+            subject=subject,
+            body=body,
+            client_id=client_id,
+            lead_id=lead_id,
+            source="ai_generated",
+            reason=reason,
+            recipient_name=recipient_name,
+            context=context,
+        )
 
         log_action(
             "generate_followup_email",
@@ -100,3 +109,82 @@ def generate_followup_email(
         logger.warning("generate_followup_email failed: %s", exc)
         log_action("generate_followup_email", f"client_id={client_id} lead_id={lead_id}", str(exc), status="error")
         return GenerateFollowupEmailResult(success=False, error=str(exc))
+
+
+class ComposeEmailResult(BaseModel):
+    success: bool
+    followup_id: int | None = None
+    error: str | None = None
+
+
+def compose_email(
+    subject: str, body: str, client_id: str | None = None, lead_id: str | None = None, source: str = "manual"
+) -> ComposeEmailResult:
+    """Save a manually written (or template-filled) email as a Draft, pending
+    human approval -- never sent automatically."""
+    try:
+        followup = crud.create_followup(subject=subject, body=body, client_id=client_id, lead_id=lead_id, source=source)
+        log_action(
+            "compose_email",
+            f"client_id={client_id} lead_id={lead_id} source={source} subject={subject!r}",
+            f"followup_id={followup.id}",
+            human_approval_status="N/A",
+        )
+        return ComposeEmailResult(success=True, followup_id=followup.id)
+    except Exception as exc:
+        logger.warning("compose_email failed: %s", exc)
+        log_action("compose_email", f"client_id={client_id} lead_id={lead_id}", str(exc), status="error")
+        return ComposeEmailResult(success=False, error=str(exc))
+
+
+class EditEmailDraftResult(BaseModel):
+    success: bool
+    followup_id: int
+    error: str | None = None
+
+
+def edit_email_draft(followup_id: int, subject: str, body: str) -> EditEmailDraftResult:
+    """Manually edit a Draft email's subject/body in place. Only works while
+    the followup is still Draft -- an Approved/Sent email cannot be edited."""
+    try:
+        updated = crud.update_followup(followup_id, subject=subject, body=body)
+        if updated is None:
+            log_action("edit_email_draft", f"followup_id={followup_id}", "not found or not Draft", status="error")
+            return EditEmailDraftResult(
+                success=False, followup_id=followup_id, error="Draft not found, or it's no longer editable."
+            )
+        log_action("edit_email_draft", f"followup_id={followup_id}", "edited", human_approval_status="N/A")
+        return EditEmailDraftResult(success=True, followup_id=followup_id)
+    except Exception as exc:
+        logger.warning("edit_email_draft failed for %s: %s", followup_id, exc)
+        log_action("edit_email_draft", f"followup_id={followup_id}", str(exc), status="error")
+        return EditEmailDraftResult(success=False, followup_id=followup_id, error=str(exc))
+
+
+class RegenerateEmailDraftResult(BaseModel):
+    success: bool
+    followup_id: int
+    subject: str = ""
+    body: str = ""
+    error: str | None = None
+
+
+def regenerate_email_draft(followup_id: int, reason: str, recipient_name: str, context: str = "") -> RegenerateEmailDraftResult:
+    """Re-generate a Draft email's subject/body in place using the same (or
+    updated) reason/recipient/context. Only works while still Draft."""
+    try:
+        subject, body = _draft_email(reason, recipient_name, context)
+        updated = crud.update_followup(followup_id, subject=subject, body=body)
+        if updated is None:
+            log_action("regenerate_email_draft", f"followup_id={followup_id}", "not found or not Draft", status="error")
+            return RegenerateEmailDraftResult(
+                success=False, followup_id=followup_id, error="Draft not found, or it's no longer editable."
+            )
+        log_action(
+            "regenerate_email_draft", f"followup_id={followup_id} reason={reason!r}", "regenerated", human_approval_status="Pending"
+        )
+        return RegenerateEmailDraftResult(success=True, followup_id=followup_id, subject=subject, body=body)
+    except Exception as exc:
+        logger.warning("regenerate_email_draft failed for %s: %s", followup_id, exc)
+        log_action("regenerate_email_draft", f"followup_id={followup_id}", str(exc), status="error")
+        return RegenerateEmailDraftResult(success=False, followup_id=followup_id, error=str(exc))

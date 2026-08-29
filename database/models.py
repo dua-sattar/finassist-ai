@@ -95,6 +95,12 @@ class Followup(Base):
     subject: Mapped[str]
     body: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(default="Draft")  # Draft | Approved | Sent-simulated
+    source: Mapped[str] = mapped_column(default="manual")  # manual | template | ai_generated
+    # Only set for source="ai_generated" -- lets "Regenerate" redo the draft
+    # with the same inputs without the user re-entering them.
+    reason: Mapped[str | None] = mapped_column(nullable=True)
+    recipient_name: Mapped[str | None] = mapped_column(nullable=True)
+    context: Mapped[str | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=_utcnow)
     approved_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
