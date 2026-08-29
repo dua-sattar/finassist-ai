@@ -1,9 +1,11 @@
 """Document Analysis page: upload a PDF, identify the client, run the full
-Phase 3/10 extraction + document-review pipeline, and show the results."""
+Phase 3/10 extraction + document-review pipeline, and show the results.
+Phase 24 adds a Multi-Document Analysis tab for uploading several documents
+for one client at once and checking cross-document consistency."""
 
 import streamlit as st
 
-from agent.workflows import review_client_documents
+from agent.workflows import analyze_multiple_documents, review_client_documents
 from app.components.status_badge import render_status_badge
 from database import crud
 from document_processing.extractor import extract_fields
@@ -18,11 +20,21 @@ def _client_options() -> dict[str, str]:
 def render() -> None:
     st.header("Document Analysis")
     st.caption(
-        "Upload a synthetic financial document (PDF) to extract structured fields, generate an "
-        "AI summary, and check it against the client's onboarding requirements."
+        "Upload synthetic financial documents (PDF) to extract structured fields, generate an "
+        "AI summary, and check them against the client's onboarding requirements."
     )
 
-    uploaded = st.file_uploader("Upload a PDF document", type=["pdf"])
+    single_tab, multi_tab = st.tabs(["Single Document", "Multi-Document Analysis"])
+
+    with single_tab:
+        _render_single_document()
+
+    with multi_tab:
+        _render_multi_document()
+
+
+def _render_single_document() -> None:
+    uploaded = st.file_uploader("Upload a PDF document", type=["pdf"], key="single-doc-uploader")
 
     try:
         options = _client_options()
@@ -54,13 +66,13 @@ def render() -> None:
         st.warning("No clients found in the CRM yet.")
         return
 
-    selected_label = st.selectbox("Client", list(options.keys()), index=default_index)
+    selected_label = st.selectbox("Client", list(options.keys()), index=default_index, key="single-doc-client")
     client_id = options[selected_label]
 
     if uploaded is None:
         st.caption("Upload a document above, then click Analyze.")
 
-    analyze_clicked = st.button("Analyze Document", type="primary", disabled=uploaded is None)
+    analyze_clicked = st.button("Analyze Document", type="primary", disabled=uploaded is None, key="single-doc-analyze")
 
     if not analyze_clicked:
         return
@@ -116,3 +128,87 @@ def render() -> None:
             f"Follow-up task #{result.task_id} created and a draft email (#{result.followup_id}) "
             "is ready for approval on the Follow-ups page."
         )
+
+
+def _render_multi_document() -> None:
+    st.caption(
+        "Upload several documents for the same client at once to check category coverage and "
+        "consistency (client ID / name) across the whole batch."
+    )
+
+    try:
+        options = _client_options()
+    except Exception as exc:
+        st.error(f"Could not load clients: {exc}")
+        return
+
+    if not options:
+        st.warning("No clients found in the CRM yet.")
+        return
+
+    selected_label = st.selectbox("Client", list(options.keys()), key="multi-doc-client")
+    client_id = options[selected_label]
+
+    uploaded_files = st.file_uploader(
+        "Upload PDF documents", type=["pdf"], accept_multiple_files=True, key="multi-doc-uploader"
+    )
+
+    analyze_clicked = st.button(
+        "Analyze Documents", type="primary", disabled=not uploaded_files, key="multi-doc-analyze"
+    )
+
+    if not analyze_clicked:
+        return
+
+    files = [(f.getvalue(), f.name) for f in uploaded_files]
+
+    with st.spinner(f"Analyzing {len(files)} document(s)..."):
+        try:
+            result = analyze_multiple_documents(client_id, files)
+        except Exception as exc:
+            st.error(f"Multi-document analysis failed: {exc}")
+            return
+
+    if not result.success:
+        st.error(f"Could not complete multi-document analysis: {result.error}")
+        return
+    if not result.found:
+        st.error(f"Client {client_id} not found.")
+        return
+
+    st.subheader("Documents in This Batch")
+    for item in result.batch_items:
+        with st.expander(f"{'✅' if item.success else '❌'} {item.filename} ({item.document_type})"):
+            if item.success:
+                st.json(item.extracted_fields)
+                if item.missing_fields:
+                    st.caption(f"Missing fields: {', '.join(item.missing_fields)}")
+            else:
+                st.warning(item.error or "Extraction failed.")
+
+    st.subheader("Category Coverage")
+    if result.missing_categories:
+        st.warning(f"Missing categories: {', '.join(result.missing_categories)}")
+    else:
+        st.success("All required categories are represented in this batch.")
+
+    st.subheader("Consistency Check")
+    if result.client_id_mismatch:
+        st.error(f"Client ID mismatch across documents: {', '.join(result.client_ids_seen)}")
+    else:
+        st.success("Client ID is consistent across the batch.")
+    if result.name_mismatch:
+        st.error(f"Client name mismatch across documents: {', '.join(result.names_seen)}")
+    else:
+        st.success("Client name is consistent across the batch.")
+
+    render_status_badge(result.overall_status)
+
+    st.markdown("**AI Observation**")
+    st.info(result.ai_observation)
+
+    st.markdown("**Recommended Action**")
+    st.warning(result.recommended_action)
+
+    with st.expander("Full report"):
+        st.text(result.report)

@@ -6,10 +6,12 @@ calls these directly so each process runs the same way every time.
 """
 
 import logging
+import os
 from pathlib import Path
 
 from pydantic import BaseModel
 
+from document_processing.schemas import REQUIRED_DOCUMENT_CATEGORIES
 from tools.contact_tools import classify_contact_submission, create_contact_submission, update_contact_submission
 from tools.crm_tools import create_lead, get_client, get_lead, update_client, update_lead
 from tools.document_tools import (
@@ -331,3 +333,267 @@ def process_contact_submission(
             result.task_id = task.task_id
 
     return result
+
+
+# --- Multi-Document Analysis (spec section 8) --------------------------------
+
+_NAME_FIELD_KEYS = ("client_name", "full_name", "recipient_name")
+
+_MULTI_DOC_SYSTEM_PROMPT = (
+    "You are FinAssist AI's document-review assistant. You are given the extracted "
+    "fields from multiple documents uploaded together for one client. Write a brief, "
+    "neutral 'AI Observation' (2-4 sentences) noting only what is actually present in "
+    "the data: relevant extracted values, and any conflicting information or "
+    "inconsistent dates/client details visible across the documents. Do not invent "
+    "facts. Do NOT make any approval, rejection, or fraud determination -- only "
+    "describe what you observe. If nothing looks inconsistent, say so plainly."
+)
+
+
+class DocumentBatchItem(BaseModel):
+    filename: str
+    success: bool
+    document_type: str
+    extracted_fields: dict = {}
+    missing_fields: list[str] = []
+    error: str | None = None
+
+
+class MultiDocumentAnalysisResult(BaseModel):
+    success: bool
+    client_id: str
+    found: bool = False
+    batch_items: list[DocumentBatchItem] = []
+    missing_categories: list[str] = []
+    client_id_mismatch: bool = False
+    client_ids_seen: list[str] = []
+    name_mismatch: bool = False
+    names_seen: list[str] = []
+    overall_status: str = ""
+    ai_observation: str = ""
+    recommended_action: str = ""
+    report: str = ""
+    error: str | None = None
+
+
+def _fallback_multi_doc_observation(
+    batch_items: list[DocumentBatchItem],
+    missing_categories: list[str],
+    client_id_mismatch: bool,
+    client_ids_seen: list[str],
+    name_mismatch: bool,
+    names_seen: list[str],
+) -> str:
+    parts = [f"{len(batch_items)} document(s) analyzed."]
+    if client_id_mismatch:
+        parts.append(f"Client ID mismatch across documents: {', '.join(client_ids_seen)}.")
+    if name_mismatch:
+        parts.append(f"Client name mismatch across documents: {', '.join(names_seen)}.")
+    if missing_categories:
+        parts.append(f"Missing categories in this batch: {', '.join(missing_categories)}.")
+    else:
+        parts.append("All required categories are represented in this batch.")
+    return " ".join(parts)
+
+
+def _generate_multi_doc_observation(
+    client_id: str,
+    batch_items: list[DocumentBatchItem],
+    missing_categories: list[str],
+    client_id_mismatch: bool,
+    client_ids_seen: list[str],
+    name_mismatch: bool,
+    names_seen: list[str],
+) -> str:
+    fallback = _fallback_multi_doc_observation(
+        batch_items, missing_categories, client_id_mismatch, client_ids_seen, name_mismatch, names_seen
+    )
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return fallback
+
+    try:
+        from groq import Groq
+
+        client = Groq(api_key=api_key)
+        model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+        doc_summaries = "\n".join(
+            f"- {item.filename} ({item.document_type}): {item.extracted_fields}"
+            for item in batch_items
+            if item.success
+        )
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": _MULTI_DOC_SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Client: {client_id}\nDocuments:\n{doc_summaries}\n\n"
+                        f"Missing categories in this batch: {missing_categories or 'none'}\n"
+                        f"Client ID values seen: {client_ids_seen}\n"
+                        f"Client name values seen: {names_seen}"
+                    ),
+                },
+            ],
+            max_tokens=250,
+        )
+        text = (response.choices[0].message.content or "").strip()
+        return text or fallback
+    except Exception as exc:
+        logger.warning("Groq multi-document observation call failed for %s: %s", client_id, exc)
+        return fallback
+
+
+def _format_multi_doc_report(
+    client_id: str,
+    client_name: str,
+    batch_items: list[DocumentBatchItem],
+    missing_categories: list[str],
+    client_id_mismatch: bool,
+    client_ids_seen: list[str],
+    name_mismatch: bool,
+    names_seen: list[str],
+    overall_status: str,
+    ai_observation: str,
+    recommended_action: str,
+) -> str:
+    lines = [
+        "MULTI-DOCUMENT ANALYSIS",
+        "",
+        f"Client: {client_id} ({client_name})",
+        f"Documents Analyzed: {len(batch_items)}",
+        "",
+    ]
+    for item in batch_items:
+        mark = "✓" if item.success else "✗"
+        detail = item.document_type if item.success else f"failed: {item.error}"
+        lines.append(f"{mark} {item.filename} ({detail})")
+
+    lines += ["", "Category Coverage:"]
+    for category in REQUIRED_DOCUMENT_CATEGORIES:
+        mark = "✗" if category in missing_categories else "✓"
+        lines.append(f"{mark} {category}")
+
+    lines += ["", "Consistency Check:"]
+    if client_id_mismatch:
+        lines.append(f"✗ Client ID mismatch: {', '.join(client_ids_seen)}")
+    else:
+        lines.append(f"✓ Client ID consistent ({client_ids_seen[0] if client_ids_seen else 'n/a'})")
+    if name_mismatch:
+        lines.append(f"✗ Client name mismatch: {', '.join(names_seen)}")
+    else:
+        lines.append(f"✓ Client name consistent ({names_seen[0] if names_seen else 'n/a'})")
+
+    lines += [
+        "",
+        f"Overall Status: {overall_status}",
+        "",
+        "AI Observation:",
+        ai_observation,
+        "",
+        "Recommended Action:",
+        recommended_action,
+        "",
+        "Human Review Required",
+    ]
+    return "\n".join(lines)
+
+
+def analyze_multiple_documents(client_id: str, files: list[tuple[bytes, str]]) -> MultiDocumentAnalysisResult:
+    """Upload and analyze multiple documents together for one client: run
+    each through the Phase 3 extraction pipeline, check category coverage
+    and client ID/name consistency across the batch, and get an AI
+    observation grounded only in what was actually extracted. Never makes
+    an approval, rejection, or fraud determination -- always ends with a
+    human-review notice."""
+    client_result = get_client(client_id)
+    if not client_result.success:
+        return MultiDocumentAnalysisResult(success=False, client_id=client_id, error=client_result.error)
+    if not client_result.found:
+        return MultiDocumentAnalysisResult(success=True, client_id=client_id, found=False)
+
+    batch_items: list[DocumentBatchItem] = []
+    document_types_seen: set[str] = set()
+    client_ids_seen: set[str] = set()
+    names_seen: set[str] = set()
+
+    for file_bytes, filename in files:
+        analysis = analyze_document(file_bytes, client_id=client_id, filename=filename)
+        batch_items.append(
+            DocumentBatchItem(
+                filename=filename,
+                success=analysis.success,
+                document_type=analysis.document_type,
+                extracted_fields=analysis.extracted_fields,
+                missing_fields=analysis.missing_fields,
+                error=analysis.error,
+            )
+        )
+        if analysis.success:
+            document_types_seen.add(analysis.document_type)
+            cid = analysis.extracted_fields.get("client_id")
+            if cid:
+                client_ids_seen.add(cid)
+            for key in _NAME_FIELD_KEYS:
+                name = analysis.extracted_fields.get(key)
+                if name:
+                    names_seen.add(name)
+                    break
+
+    missing_categories = [
+        category
+        for category, doc_types in REQUIRED_DOCUMENT_CATEGORIES.items()
+        if not any(dt in document_types_seen for dt in doc_types)
+    ]
+
+    client_id_mismatch = len(client_ids_seen) > 1
+    name_mismatch = len(names_seen) > 1
+    overall_status = "Complete" if not missing_categories else "Partial"
+
+    ai_observation = _generate_multi_doc_observation(
+        client_id,
+        batch_items,
+        missing_categories,
+        client_id_mismatch,
+        sorted(client_ids_seen),
+        name_mismatch,
+        sorted(names_seen),
+    )
+
+    if client_id_mismatch or name_mismatch:
+        recommended_action = "Documents reference different client identities -- verify with the client before proceeding."
+    elif missing_categories:
+        recommended_action = f"Request the following missing document(s): {', '.join(missing_categories)}."
+    else:
+        recommended_action = "All document categories are present in this batch. Confirm details with the client before finalizing."
+
+    report = _format_multi_doc_report(
+        client_id,
+        client_result.name or client_id,
+        batch_items,
+        missing_categories,
+        client_id_mismatch,
+        sorted(client_ids_seen),
+        name_mismatch,
+        sorted(names_seen),
+        overall_status,
+        ai_observation,
+        recommended_action,
+    )
+
+    return MultiDocumentAnalysisResult(
+        success=True,
+        client_id=client_id,
+        found=True,
+        batch_items=batch_items,
+        missing_categories=missing_categories,
+        client_id_mismatch=client_id_mismatch,
+        client_ids_seen=sorted(client_ids_seen),
+        name_mismatch=name_mismatch,
+        names_seen=sorted(names_seen),
+        overall_status=overall_status,
+        ai_observation=ai_observation,
+        recommended_action=recommended_action,
+        report=report,
+    )
