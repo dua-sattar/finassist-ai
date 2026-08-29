@@ -24,6 +24,7 @@ from tools.crm_tools import update_lead as _update_lead
 from tools.document_tools import analyze_document as _analyze_document
 from tools.document_tools import check_required_documents as _check_required_documents
 from tools.email_tools import generate_followup_email as _generate_followup_email
+from tools.action_center_tools import get_action_center_summary as _get_action_center_summary
 from tools.knowledge_tools import search_knowledge_base as _search_knowledge_base
 from tools.search_tools import global_search as _global_search
 from tools.summary_tools import generate_case_summary as _generate_case_summary
@@ -115,6 +116,17 @@ def generate_case_summary(client_id: str) -> str:
 
 
 @tool
+def get_action_center_summary() -> str:
+    """Get a prioritized "what needs attention today" digest across the
+    whole system: open follow-up tasks, clients with documents pending,
+    draft emails awaiting approval, and new leads not yet qualified.
+    Read-only. Use this when the user asks something broad like "what needs
+    my attention", "what should I work on today", or "what's outstanding",
+    rather than checking each area separately."""
+    return _get_action_center_summary().model_dump_json()
+
+
+@tool
 def analyze_document(filename: str, client_id: str | None = None) -> str:
     """Analyze a document already present in the synthetic documents folder by
     filename, extracting its type, structured fields, missing fields, and an AI
@@ -199,6 +211,7 @@ TOOLS = [
     global_search,
     check_required_documents,
     generate_case_summary,
+    get_action_center_summary,
     analyze_document,
     update_client,
     update_lead,

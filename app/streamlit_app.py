@@ -25,6 +25,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 from app.components.disclaimer import render_disclaimer_banner  # noqa: E402
 from app.views import (  # noqa: E402
+    action_center,
     ai_actions,
     assistant,
     clients,
@@ -77,6 +78,7 @@ def main() -> None:
     # url_path is passed explicitly to avoid that.
     pages = [
         st.Page(_with_banner(dashboard.render), title="Dashboard", icon="📊", url_path="dashboard", default=True),
+        st.Page(_with_banner(action_center.render), title="AI Action Center", icon="⚡", url_path="action-center"),
         st.Page(_with_banner(assistant.render), title="AI Assistant", icon="💬", url_path="assistant"),
         st.Page(_with_banner(documents.render), title="Document Analysis", icon="📄", url_path="documents"),
         st.Page(_with_banner(knowledge_base.render), title="Knowledge Base", icon="📚", url_path="knowledge-base"),
