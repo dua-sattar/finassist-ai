@@ -203,6 +203,34 @@ def add_document_extraction(
         return extraction
 
 
+def search_documents(query: str, limit: int = 10) -> list[Document]:
+    """Case-insensitive substring match across filename and document_type."""
+    needle = f"%{query.strip().lower()}%"
+    with session_scope() as session:
+        return (
+            session.query(Document)
+            .filter(or_(func.lower(Document.filename).like(needle), func.lower(Document.document_type).like(needle)))
+            .order_by(Document.id.desc())
+            .limit(limit)
+            .all()
+        )
+
+
+def search_document_extractions(query: str, limit: int = 10) -> list[tuple[DocumentExtraction, Document]]:
+    """Case-insensitive substring match over AI-generated document summaries,
+    joined with the owning Document for display context."""
+    needle = f"%{query.strip().lower()}%"
+    with session_scope() as session:
+        return (
+            session.query(DocumentExtraction, Document)
+            .join(Document, DocumentExtraction.document_id == Document.id)
+            .filter(func.lower(DocumentExtraction.summary).like(needle))
+            .order_by(DocumentExtraction.id.desc())
+            .limit(limit)
+            .all()
+        )
+
+
 # --- Tasks ---------------------------------------------------------------
 
 
@@ -236,6 +264,20 @@ def list_open_tasks(client_id: str | None = None, lead_id: str | None = None) ->
         if lead_id:
             query = query.filter(Task.lead_id == lead_id)
         return query.all()
+
+
+def search_tasks(query: str, limit: int = 10) -> list[Task]:
+    """Case-insensitive substring match across description and task_type,
+    regardless of status (Global Search should surface historical tasks too)."""
+    needle = f"%{query.strip().lower()}%"
+    with session_scope() as session:
+        return (
+            session.query(Task)
+            .filter(or_(func.lower(Task.description).like(needle), func.lower(Task.task_type).like(needle)))
+            .order_by(Task.id.desc())
+            .limit(limit)
+            .all()
+        )
 
 
 # --- Followups -----------------------------------------------------------
@@ -278,6 +320,19 @@ def list_followups(status: str | None = None) -> list[Followup]:
         if status:
             query = query.filter(Followup.status == status)
         return query.all()
+
+
+def search_followups(query: str, limit: int = 10) -> list[Followup]:
+    """Case-insensitive substring match across subject and body."""
+    needle = f"%{query.strip().lower()}%"
+    with session_scope() as session:
+        return (
+            session.query(Followup)
+            .filter(or_(func.lower(Followup.subject).like(needle), func.lower(Followup.body).like(needle)))
+            .order_by(Followup.id.desc())
+            .limit(limit)
+            .all()
+        )
 
 
 def update_followup(followup_id: int, subject: str | None = None, body: str | None = None) -> Followup | None:

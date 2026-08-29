@@ -33,6 +33,7 @@ from app.views import (  # noqa: E402
     documents,
     email_center,
     followups,
+    global_search,
     knowledge_base,
     leads,
 )
@@ -79,6 +80,7 @@ def main() -> None:
         st.Page(_with_banner(assistant.render), title="AI Assistant", icon="💬", url_path="assistant"),
         st.Page(_with_banner(documents.render), title="Document Analysis", icon="📄", url_path="documents"),
         st.Page(_with_banner(knowledge_base.render), title="Knowledge Base", icon="📚", url_path="knowledge-base"),
+        st.Page(_with_banner(global_search.render), title="Global Search", icon="🔍", url_path="global-search"),
         st.Page(_with_banner(clients.render), title="Client Management", icon="🧑‍💼", url_path="clients"),
         st.Page(_with_banner(leads.render), title="Lead Management", icon="🎯", url_path="leads"),
         st.Page(_with_banner(followups.render), title="Follow-ups", icon="✅", url_path="followups"),

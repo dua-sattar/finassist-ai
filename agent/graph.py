@@ -25,6 +25,7 @@ from tools.document_tools import analyze_document as _analyze_document
 from tools.document_tools import check_required_documents as _check_required_documents
 from tools.email_tools import generate_followup_email as _generate_followup_email
 from tools.knowledge_tools import search_knowledge_base as _search_knowledge_base
+from tools.search_tools import global_search as _global_search
 from tools.task_tools import create_followup_task as _create_followup_task
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,18 @@ def search_leads(query: str) -> str:
     don't have an exact lead_id. Returns up to 10 matches. Use get_lead
     instead once you have the exact lead_id."""
     return _search_leads(query).model_dump_json()
+
+
+@tool
+def global_search(query: str) -> str:
+    """Broad search across clients, leads, documents, tasks, follow-up
+    emails, the knowledge base, and AI-generated document summaries at once.
+    Use this for vague or wide-scope requests (e.g. 'find anything about
+    C1002' or 'search everything for proof of address') where you don't yet
+    know which specific record type to look in. For a targeted lookup you
+    already know the type of, prefer the more specific tool instead
+    (get_client, search_clients, search_knowledge_base, etc.)."""
+    return _global_search(query).model_dump_json()
 
 
 @tool
@@ -171,6 +184,7 @@ TOOLS = [
     get_lead,
     search_clients,
     search_leads,
+    global_search,
     check_required_documents,
     analyze_document,
     update_client,
