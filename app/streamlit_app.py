@@ -85,7 +85,7 @@ def main() -> None:
         st.Page(_with_banner(global_search.render), title="Global Search", icon="🔍", url_path="global-search"),
         st.Page(_with_banner(clients.render), title="Client Management", icon="🧑‍💼", url_path="clients"),
         st.Page(_with_banner(leads.render), title="Lead Management", icon="🎯", url_path="leads"),
-        st.Page(_with_banner(followups.render), title="Follow-ups", icon="✅", url_path="followups"),
+        st.Page(_with_banner(followups.render), title="Tasks & Follow-ups", icon="✅", url_path="followups"),
         st.Page(_with_banner(email_center.render), title="Email Center", icon="📧", url_path="email-center"),
         st.Page(_with_banner(contact_us.render), title="Contact Us", icon="📞", url_path="contact-us"),
         st.Page(_with_banner(ai_actions.render), title="AI Actions", icon="🪵", url_path="ai-actions"),

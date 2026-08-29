@@ -266,6 +266,30 @@ def list_open_tasks(client_id: str | None = None, lead_id: str | None = None) ->
         return query.all()
 
 
+def list_tasks(status: str | None = None, client_id: str | None = None, lead_id: str | None = None) -> list[Task]:
+    """List tasks regardless of status (unlike list_open_tasks) -- needed
+    for the Completed / overdue / due-today / upcoming groupings."""
+    with session_scope() as session:
+        query = session.query(Task).order_by(Task.id.desc())
+        if status:
+            query = query.filter(Task.status == status)
+        if client_id:
+            query = query.filter(Task.client_id == client_id)
+        if lead_id:
+            query = query.filter(Task.lead_id == lead_id)
+        return query.all()
+
+
+def complete_task(task_id: int) -> Task | None:
+    with session_scope() as session:
+        task = session.get(Task, task_id)
+        if task is None:
+            logger.warning("complete_task: task %s not found", task_id)
+            return None
+        task.status = "Completed"
+        return task
+
+
 def search_tasks(query: str, limit: int = 10) -> list[Task]:
     """Case-insensitive substring match across description and task_type,
     regardless of status (Global Search should surface historical tasks too)."""

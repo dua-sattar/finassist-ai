@@ -28,6 +28,7 @@ from tools.action_center_tools import get_action_center_summary as _get_action_c
 from tools.knowledge_tools import search_knowledge_base as _search_knowledge_base
 from tools.search_tools import global_search as _global_search
 from tools.summary_tools import generate_case_summary as _generate_case_summary
+from tools.task_tools import complete_task as _complete_task
 from tools.task_tools import create_followup_task as _create_followup_task
 
 logger = logging.getLogger(__name__)
@@ -186,6 +187,13 @@ def create_followup_task(
 
 
 @tool
+def complete_task(task_id: int) -> str:
+    """Mark a follow-up task as completed. Only use this when the user
+    explicitly confirms the underlying work is done."""
+    return _complete_task(task_id).model_dump_json()
+
+
+@tool
 def generate_followup_email(
     reason: str,
     recipient_name: str,
@@ -216,6 +224,7 @@ TOOLS = [
     update_client,
     update_lead,
     create_followup_task,
+    complete_task,
     generate_followup_email,
 ]
 
