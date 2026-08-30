@@ -23,6 +23,7 @@ from database.models import (
     Followup,
     Lead,
     MeetingSummary,
+    PendingChange,
     Task,
 )
 
@@ -528,6 +529,74 @@ def list_meeting_summaries(client_id: str | None = None, lead_id: str | None = N
         if lead_id:
             query = query.filter(MeetingSummary.lead_id == lead_id)
         return query.all()
+
+
+# --- Pending changes (Phase 30) ---------------------------------------------
+
+
+def create_pending_change(entity_type: str, entity_id: str, field_changes: dict, reason: str) -> PendingChange:
+    with session_scope() as session:
+        change = PendingChange(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            field_changes_json=json.dumps(field_changes),
+            reason=reason,
+        )
+        session.add(change)
+        session.flush()
+        return change
+
+
+def list_pending_changes(status: str | None = None) -> list[PendingChange]:
+    with session_scope() as session:
+        query = session.query(PendingChange).order_by(PendingChange.created_at.desc())
+        if status:
+            query = query.filter(PendingChange.status == status)
+        return query.all()
+
+
+def approve_pending_change(change_id: int) -> PendingChange | None:
+    """Apply the proposed field changes to the underlying client/lead
+    record and mark the change Approved. Only succeeds if the change is
+    still Pending -- returns None (and changes nothing) otherwise, so a
+    change can never be applied twice."""
+    with session_scope() as session:
+        change = session.get(PendingChange, change_id)
+        if change is None:
+            logger.warning("approve_pending_change: change %s not found", change_id)
+            return None
+        if change.status != "Pending":
+            logger.warning("approve_pending_change: change %s is not Pending (%s)", change_id, change.status)
+            return None
+
+        fields = json.loads(change.field_changes_json)
+        entity_cls = Client if change.entity_type == "client" else Lead
+        entity = session.get(entity_cls, change.entity_id)
+        if entity is None:
+            logger.warning(
+                "approve_pending_change: %s %s not found", change.entity_type, change.entity_id
+            )
+            return None
+        for key, value in fields.items():
+            setattr(entity, key, value)
+
+        change.status = "Approved"
+        change.decided_at = datetime.now(timezone.utc)
+        return change
+
+
+def reject_pending_change(change_id: int) -> PendingChange | None:
+    with session_scope() as session:
+        change = session.get(PendingChange, change_id)
+        if change is None:
+            logger.warning("reject_pending_change: change %s not found", change_id)
+            return None
+        if change.status != "Pending":
+            logger.warning("reject_pending_change: change %s is not Pending (%s)", change_id, change.status)
+            return None
+        change.status = "Rejected"
+        change.decided_at = datetime.now(timezone.utc)
+        return change
 
 
 # --- Contact submissions (Phase 19) -----------------------------------------

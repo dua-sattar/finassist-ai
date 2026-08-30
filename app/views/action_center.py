@@ -1,8 +1,8 @@
 """AI Action Center: a prioritized "what needs attention today" digest,
 aggregating open tasks, documents-pending clients, draft emails awaiting
-approval, and new leads -- distinct from the AI Actions page, which is a
-historical audit log rather than a forward-looking triage list (spec
-section 19)."""
+approval, pending CRM changes awaiting approval (Phase 30), and new leads --
+distinct from the AI Actions page, which is a historical audit log rather
+than a forward-looking triage list (spec section 19)."""
 
 import streamlit as st
 
@@ -21,12 +21,13 @@ def render() -> None:
         st.error(f"Could not load the action center: {summary.error}")
         return
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     col1.metric("🔴 High Priority", summary.high_priority_count)
     col2.metric("🟡 Open Follow-ups", summary.followups_count)
     col3.metric("📄 Documents Pending", summary.documents_pending_count)
-    col4.metric("📧 Awaiting Approval", summary.emails_awaiting_approval_count)
-    col5.metric("🆕 New Leads", summary.new_leads_count)
+    col4.metric("📧 Emails Pending", summary.emails_awaiting_approval_count)
+    col5.metric("✅ Approvals Pending", summary.pending_changes_count)
+    col6.metric("🆕 New Leads", summary.new_leads_count)
 
     st.divider()
 

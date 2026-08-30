@@ -45,19 +45,22 @@ class ActionCenterSummary(BaseModel):
     documents_pending_count: int = 0
     emails_awaiting_approval_count: int = 0
     new_leads_count: int = 0
+    pending_changes_count: int = 0
     items: list[ActionItem] = []
     error: str | None = None
 
 
 def get_action_center_summary() -> ActionCenterSummary:
     """Aggregate open tasks, documents-pending clients, draft emails
-    awaiting approval, and unqualified new leads into one prioritized
-    action-item list. Read-only -- never changes anything."""
+    awaiting approval, pending CRM changes awaiting approval, and
+    unqualified new leads into one prioritized action-item list. Read-only
+    -- never changes anything."""
     try:
         open_tasks = crud.list_open_tasks()
         clients = crud.list_clients()
         drafts = crud.list_followups(status="Draft")
         new_leads = crud.list_leads(status="New")
+        pending_changes = crud.list_pending_changes(status="Pending")
 
         items: list[ActionItem] = []
 
@@ -103,6 +106,19 @@ def get_action_center_summary() -> ActionCenterSummary:
                 )
             )
 
+        for change in pending_changes:
+            entity_label = "Client" if change.entity_type == "client" else "Lead"
+            items.append(
+                ActionItem(
+                    key=f"pending-change-{change.id}",
+                    record_id=change.entity_id,
+                    category="Pending Approval",
+                    priority="High",
+                    recommended_action=f"Review and approve {entity_label.lower()} update on the Pending Approvals page",
+                    detail=change.reason,
+                )
+            )
+
         items.sort(key=lambda item: _PRIORITY_RANK.get(item.priority, 1))
 
         high_priority_count = sum(1 for item in items if item.priority == "High")
@@ -116,6 +132,7 @@ def get_action_center_summary() -> ActionCenterSummary:
             documents_pending_count=documents_pending_count,
             emails_awaiting_approval_count=len(drafts),
             new_leads_count=len(new_leads),
+            pending_changes_count=len(pending_changes),
             items=items,
         )
     except Exception as exc:

@@ -39,6 +39,7 @@ from app.views import (  # noqa: E402
     knowledge_base,
     leads,
     meetings,
+    pending_approvals,
     reports,
 )
 from database.database import init_db  # noqa: E402
@@ -92,6 +93,9 @@ def main() -> None:
         st.Page(_with_banner(reports.render), title="Reports", icon="📈", url_path="reports"),
         st.Page(_with_banner(meetings.render), title="Meeting Summaries", icon="🗒️", url_path="meetings"),
         st.Page(_with_banner(calculator.render), title="Financial Calculator", icon="🧮", url_path="calculator"),
+        st.Page(
+            _with_banner(pending_approvals.render), title="Pending Approvals", icon="🛂", url_path="pending-approvals"
+        ),
         st.Page(_with_banner(email_center.render), title="Email Center", icon="📧", url_path="email-center"),
         st.Page(_with_banner(contact_us.render), title="Contact Us", icon="📞", url_path="contact-us"),
         st.Page(_with_banner(ai_actions.render), title="AI Actions", icon="🪵", url_path="ai-actions"),

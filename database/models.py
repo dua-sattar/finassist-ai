@@ -131,6 +131,29 @@ class AIActionLog(Base):
     created_at: Mapped[datetime] = mapped_column(default=_utcnow)
 
 
+class PendingChange(Base):
+    """A proposed client/lead field update awaiting human approval before
+    it's applied (Phase 30's broader human-approval gate, extending the
+    Followup Draft/Approved/Sent-simulated pattern from email drafts to CRM
+    record updates). Only the chat agent's propose_client_update /
+    propose_lead_update tools create these -- the deterministic workflows
+    (document review, lead qualification), which are already triggered by
+    an explicit human clicking a dedicated UI button, keep updating records
+    immediately since that click *is* the human-in-the-loop step for those
+    flows."""
+
+    __tablename__ = "pending_changes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    entity_type: Mapped[str]  # "client" | "lead"
+    entity_id: Mapped[str]
+    field_changes_json: Mapped[str] = mapped_column(Text)
+    reason: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(default="Pending")  # Pending | Approved | Rejected
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+
 class MeetingSummary(Base):
     """A structured AI summary of a client/lead meeting or call (spec section
     25): raw notes an advisor pastes in, plus the AI-extracted key points,

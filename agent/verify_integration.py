@@ -46,14 +46,14 @@ def check_tool_registration() -> None:
         "get_lead",
         "check_required_documents",
         "analyze_document",
-        "update_client",
-        "update_lead",
+        "propose_client_update",
+        "propose_lead_update",
         "create_followup_task",
         "generate_followup_email",
     }
     missing = expected - set(names)
     assert not missing, f"missing tools: {missing}"
-    print("OK: all 9 tools registered.\n")
+    print(f"OK: all {len(expected)} originally-checked tools still registered (now {len(names)} total).\n")
 
 
 def check_malformed_tool_call_guard() -> None:

@@ -1,6 +1,12 @@
 """get_client, get_lead, update_client, update_lead tools -- wrap
 database/crud.py's client and lead functions with typed, never-raising
-results."""
+results. update_client/update_lead apply immediately and are only called by
+the deterministic workflows (agent/workflows.py), which are triggered by an
+explicit human button click -- that click is the human-in-the-loop step for
+those flows. propose_client_update/propose_lead_update (Phase 30) are the
+chat agent's equivalents: they never apply a change immediately, only
+create a pending change a human must approve on the Pending Approvals page
+(database.crud.approve_pending_change / reject_pending_change)."""
 
 import logging
 from datetime import date
@@ -298,3 +304,98 @@ def update_lead(
         logger.warning("update_lead failed for %s: %s", lead_id, exc)
         log_action("update_lead", f"lead_id={lead_id} fields={fields}", str(exc), status="error")
         return UpdateResult(success=False, record_id=lead_id, error=str(exc))
+
+
+class ProposeUpdateResult(BaseModel):
+    success: bool
+    record_id: str
+    change_id: int | None = None
+    error: str | None = None
+
+
+def propose_client_update(
+    client_id: str,
+    reason: str,
+    account_status: str | None = None,
+    onboarding_status: str | None = None,
+    assigned_advisor: str | None = None,
+) -> ProposeUpdateResult:
+    """Propose a change to a client's account_status, onboarding_status,
+    and/or assigned_advisor. Never applies immediately -- creates a pending
+    change a human advisor must approve on the Pending Approvals page
+    before it takes effect. Only non-None arguments are included."""
+    fields = {
+        k: v
+        for k, v in {
+            "account_status": account_status,
+            "onboarding_status": onboarding_status,
+            "assigned_advisor": assigned_advisor,
+        }.items()
+        if v is not None
+    }
+    try:
+        if not fields:
+            log_action("propose_client_update", f"client_id={client_id}", "no fields provided")
+            return ProposeUpdateResult(success=False, record_id=client_id, error="No fields provided.")
+
+        client = crud.get_client(client_id)
+        if client is None:
+            log_action("propose_client_update", f"client_id={client_id}", "not found")
+            return ProposeUpdateResult(success=False, record_id=client_id, error=f"Client {client_id} not found.")
+
+        change = crud.create_pending_change("client", client_id, fields, reason)
+        log_action(
+            "propose_client_update",
+            f"client_id={client_id} fields={fields} reason={reason!r}",
+            f"change_id={change.id}",
+            human_approval_status="Pending",
+        )
+        return ProposeUpdateResult(success=True, record_id=client_id, change_id=change.id)
+    except Exception as exc:
+        logger.warning("propose_client_update failed for %s: %s", client_id, exc)
+        log_action("propose_client_update", f"client_id={client_id} fields={fields}", str(exc), status="error")
+        return ProposeUpdateResult(success=False, record_id=client_id, error=str(exc))
+
+
+def propose_lead_update(
+    lead_id: str,
+    reason: str,
+    status: str | None = None,
+    engagement_level: str | None = None,
+    information_complete: bool | None = None,
+) -> ProposeUpdateResult:
+    """Propose a change to a lead's status, engagement_level, and/or
+    information_complete. Never applies immediately -- creates a pending
+    change a human advisor must approve on the Pending Approvals page
+    before it takes effect. Only non-None arguments are included."""
+    fields = {
+        k: v
+        for k, v in {
+            "status": status,
+            "engagement_level": engagement_level,
+            "information_complete": information_complete,
+        }.items()
+        if v is not None
+    }
+    try:
+        if not fields:
+            log_action("propose_lead_update", f"lead_id={lead_id}", "no fields provided")
+            return ProposeUpdateResult(success=False, record_id=lead_id, error="No fields provided.")
+
+        lead = crud.get_lead(lead_id)
+        if lead is None:
+            log_action("propose_lead_update", f"lead_id={lead_id}", "not found")
+            return ProposeUpdateResult(success=False, record_id=lead_id, error=f"Lead {lead_id} not found.")
+
+        change = crud.create_pending_change("lead", lead_id, fields, reason)
+        log_action(
+            "propose_lead_update",
+            f"lead_id={lead_id} fields={fields} reason={reason!r}",
+            f"change_id={change.id}",
+            human_approval_status="Pending",
+        )
+        return ProposeUpdateResult(success=True, record_id=lead_id, change_id=change.id)
+    except Exception as exc:
+        logger.warning("propose_lead_update failed for %s: %s", lead_id, exc)
+        log_action("propose_lead_update", f"lead_id={lead_id} fields={fields}", str(exc), status="error")
+        return ProposeUpdateResult(success=False, record_id=lead_id, error=str(exc))

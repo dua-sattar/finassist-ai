@@ -20,8 +20,8 @@ from tools.crm_tools import get_client as _get_client
 from tools.crm_tools import get_lead as _get_lead
 from tools.crm_tools import search_clients as _search_clients
 from tools.crm_tools import search_leads as _search_leads
-from tools.crm_tools import update_client as _update_client
-from tools.crm_tools import update_lead as _update_lead
+from tools.crm_tools import propose_client_update as _propose_client_update
+from tools.crm_tools import propose_lead_update as _propose_lead_update
 from tools.document_tools import analyze_document as _analyze_document
 from tools.document_tools import check_required_documents as _check_required_documents
 from tools.email_tools import generate_followup_email as _generate_followup_email
@@ -181,16 +181,22 @@ def analyze_document(filename: str, client_id: str | None = None) -> str:
 
 
 @tool
-def update_client(
+def propose_client_update(
     client_id: str,
+    reason: str,
     account_status: str | None = None,
     onboarding_status: str | None = None,
     assigned_advisor: str | None = None,
 ) -> str:
-    """Update a client's account_status, onboarding_status, and/or
-    assigned_advisor. Only pass the fields that should change."""
-    return _update_client(
+    """Propose a change to a client's account_status, onboarding_status,
+    and/or assigned_advisor, with a brief reason. This NEVER applies the
+    change immediately -- it creates a pending change that a human advisor
+    must review and approve on the Pending Approvals page before it takes
+    effect. Only pass the fields that should change. Always tell the user
+    the change is pending approval, not done."""
+    return _propose_client_update(
         client_id,
+        reason,
         account_status=account_status,
         onboarding_status=onboarding_status,
         assigned_advisor=assigned_advisor,
@@ -198,16 +204,22 @@ def update_client(
 
 
 @tool
-def update_lead(
+def propose_lead_update(
     lead_id: str,
+    reason: str,
     status: str | None = None,
     engagement_level: str | None = None,
     information_complete: bool | None = None,
 ) -> str:
-    """Update a lead's status, engagement_level, and/or information_complete.
-    Only pass the fields that should change."""
-    return _update_lead(
+    """Propose a change to a lead's status, engagement_level, and/or
+    information_complete, with a brief reason. This NEVER applies the
+    change immediately -- it creates a pending change that a human advisor
+    must review and approve on the Pending Approvals page before it takes
+    effect. Only pass the fields that should change. Always tell the user
+    the change is pending approval, not done."""
+    return _propose_lead_update(
         lead_id,
+        reason,
         status=status,
         engagement_level=engagement_level,
         information_complete=information_complete,
@@ -278,8 +290,8 @@ TOOLS = [
     calculate_net_worth,
     detect_anomalies,
     analyze_document,
-    update_client,
-    update_lead,
+    propose_client_update,
+    propose_lead_update,
     create_followup_task,
     complete_task,
     generate_followup_email,
