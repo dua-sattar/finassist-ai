@@ -26,6 +26,9 @@ from tools.document_tools import analyze_document as _analyze_document
 from tools.document_tools import check_required_documents as _check_required_documents
 from tools.email_tools import generate_followup_email as _generate_followup_email
 from tools.action_center_tools import get_action_center_summary as _get_action_center_summary
+from tools.calculator_tools import calculate_loan_payment as _calculate_loan_payment
+from tools.calculator_tools import calculate_net_worth as _calculate_net_worth
+from tools.calculator_tools import calculate_savings_growth as _calculate_savings_growth
 from tools.knowledge_tools import search_knowledge_base as _search_knowledge_base
 from tools.meeting_tools import summarize_meeting_notes as _summarize_meeting_notes
 from tools.search_tools import global_search as _global_search
@@ -127,6 +130,34 @@ def get_action_center_summary() -> str:
     my attention", "what should I work on today", or "what's outstanding",
     rather than checking each area separately."""
     return _get_action_center_summary().model_dump_json()
+
+
+@tool
+def calculate_savings_growth(
+    initial_amount: float, monthly_contribution: float, annual_rate_percent: float, years: int
+) -> str:
+    """Project the future value of an initial amount plus regular monthly
+    contributions, compounded monthly at a fixed annual interest rate --
+    e.g. a retirement or investment savings projection. Deterministic
+    calculation, no CRM data involved. Always an illustrative estimate,
+    never financial advice."""
+    return _calculate_savings_growth(initial_amount, monthly_contribution, annual_rate_percent, years).model_dump_json()
+
+
+@tool
+def calculate_loan_payment(loan_amount: float, annual_rate_percent: float, term_years: int) -> str:
+    """Compute the fixed monthly payment for a standard amortizing loan
+    (e.g. a mortgage or business loan), plus total interest paid.
+    Deterministic calculation. Always an illustrative estimate, never
+    financial advice."""
+    return _calculate_loan_payment(loan_amount, annual_rate_percent, term_years).model_dump_json()
+
+
+@tool
+def calculate_net_worth(total_assets: float, total_liabilities: float) -> str:
+    """Compute net worth (assets minus liabilities) from figures the user
+    provides directly. Deterministic calculation."""
+    return _calculate_net_worth(total_assets, total_liabilities).model_dump_json()
 
 
 @tool
@@ -242,6 +273,9 @@ TOOLS = [
     check_required_documents,
     generate_case_summary,
     get_action_center_summary,
+    calculate_savings_growth,
+    calculate_loan_payment,
+    calculate_net_worth,
     detect_anomalies,
     analyze_document,
     update_client,
