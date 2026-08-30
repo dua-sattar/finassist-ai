@@ -22,6 +22,7 @@ from database.models import (
     DocumentExtraction,
     Followup,
     Lead,
+    MeetingSummary,
     Task,
 )
 
@@ -490,6 +491,43 @@ def log_ai_action(
 def list_ai_actions(limit: int = 50) -> list[AIActionLog]:
     with session_scope() as session:
         return session.query(AIActionLog).order_by(AIActionLog.id.desc()).limit(limit).all()
+
+
+# --- Meeting summaries (Phase 28) -------------------------------------------
+
+
+def create_meeting_summary(
+    client_id: str | None,
+    lead_id: str | None,
+    raw_notes: str,
+    key_points: list[str],
+    decisions: list[str],
+    action_items: list[str],
+    next_steps: list[str],
+) -> MeetingSummary:
+    with session_scope() as session:
+        summary = MeetingSummary(
+            client_id=client_id,
+            lead_id=lead_id,
+            raw_notes=raw_notes,
+            key_points_json=json.dumps(key_points),
+            decisions_json=json.dumps(decisions),
+            action_items_json=json.dumps(action_items),
+            next_steps_json=json.dumps(next_steps),
+        )
+        session.add(summary)
+        session.flush()
+        return summary
+
+
+def list_meeting_summaries(client_id: str | None = None, lead_id: str | None = None) -> list[MeetingSummary]:
+    with session_scope() as session:
+        query = session.query(MeetingSummary).order_by(MeetingSummary.created_at.desc())
+        if client_id:
+            query = query.filter(MeetingSummary.client_id == client_id)
+        if lead_id:
+            query = query.filter(MeetingSummary.lead_id == lead_id)
+        return query.all()
 
 
 # --- Contact submissions (Phase 19) -----------------------------------------

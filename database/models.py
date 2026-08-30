@@ -131,6 +131,24 @@ class AIActionLog(Base):
     created_at: Mapped[datetime] = mapped_column(default=_utcnow)
 
 
+class MeetingSummary(Base):
+    """A structured AI summary of a client/lead meeting or call (spec section
+    25): raw notes an advisor pastes in, plus the AI-extracted key points,
+    decisions, action items, and next steps (Phase 28)."""
+
+    __tablename__ = "meeting_summaries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.client_id"), nullable=True)
+    lead_id: Mapped[str | None] = mapped_column(ForeignKey("leads.lead_id"), nullable=True)
+    raw_notes: Mapped[str] = mapped_column(Text)
+    key_points_json: Mapped[str] = mapped_column(Text)
+    decisions_json: Mapped[str] = mapped_column(Text)
+    action_items_json: Mapped[str] = mapped_column(Text)
+    next_steps_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow)
+
+
 class ContactSubmission(Base):
     """A public Contact Us form submission -- doubles as the "ticket" record
     for every category; gains a lead_id once AI classification identifies it

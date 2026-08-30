@@ -27,6 +27,7 @@ from tools.document_tools import check_required_documents as _check_required_doc
 from tools.email_tools import generate_followup_email as _generate_followup_email
 from tools.action_center_tools import get_action_center_summary as _get_action_center_summary
 from tools.knowledge_tools import search_knowledge_base as _search_knowledge_base
+from tools.meeting_tools import summarize_meeting_notes as _summarize_meeting_notes
 from tools.search_tools import global_search as _global_search
 from tools.summary_tools import generate_case_summary as _generate_case_summary
 from tools.task_tools import complete_task as _complete_task
@@ -206,6 +207,15 @@ def complete_task(task_id: int) -> str:
 
 
 @tool
+def summarize_meeting_notes(raw_notes: str, client_id: str | None = None, lead_id: str | None = None) -> str:
+    """Summarize raw client/lead meeting or call notes into key points,
+    decisions, action items, and next steps. Action items automatically
+    become follow-up tasks. Use this when the user pastes in meeting/call
+    notes and asks for a summary or wants it logged."""
+    return _summarize_meeting_notes(raw_notes, client_id=client_id, lead_id=lead_id).model_dump_json()
+
+
+@tool
 def generate_followup_email(
     reason: str,
     recipient_name: str,
@@ -239,6 +249,7 @@ TOOLS = [
     create_followup_task,
     complete_task,
     generate_followup_email,
+    summarize_meeting_notes,
 ]
 
 
