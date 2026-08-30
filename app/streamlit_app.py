@@ -37,6 +37,7 @@ from app.views import (  # noqa: E402
     global_search,
     knowledge_base,
     leads,
+    reports,
 )
 from database.database import init_db  # noqa: E402
 from database.seed import main as seed_database  # noqa: E402
@@ -86,6 +87,7 @@ def main() -> None:
         st.Page(_with_banner(clients.render), title="Client Management", icon="🧑‍💼", url_path="clients"),
         st.Page(_with_banner(leads.render), title="Lead Management", icon="🎯", url_path="leads"),
         st.Page(_with_banner(followups.render), title="Tasks & Follow-ups", icon="✅", url_path="followups"),
+        st.Page(_with_banner(reports.render), title="Reports", icon="📈", url_path="reports"),
         st.Page(_with_banner(email_center.render), title="Email Center", icon="📧", url_path="email-center"),
         st.Page(_with_banner(contact_us.render), title="Contact Us", icon="📞", url_path="contact-us"),
         st.Page(_with_banner(ai_actions.render), title="AI Actions", icon="🪵", url_path="ai-actions"),
